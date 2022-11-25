@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 The MIT License (MIT)
 
@@ -27,7 +25,9 @@ import asyncio
 import datetime
 import sys
 import traceback
-from typing import Any, Callable, Coroutine, Optional, cast
+from typing import Any, Optional, cast
+
+from collections.abc import Callable, Coroutine
 
 __all__ = ("Routine", "routine")
 
@@ -63,20 +63,20 @@ class Routine:
         self,
         *,
         coro: Callable,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        iterations: Optional[int] = None,
-        time: Optional[datetime.datetime] = None,
-        delta: Optional[float] = None,
-        wait_first: Optional[bool] = False,
+        loop: asyncio.AbstractEventLoop | None = None,
+        iterations: int | None = None,
+        time: datetime.datetime | None = None,
+        delta: float | None = None,
+        wait_first: bool | None = False,
     ):
         self._coro = coro
         self._loop = loop or asyncio.get_event_loop()
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
 
         self._time = time
         self._delta = delta
 
-        self._start_time: Optional[datetime.datetime] = None
+        self._start_time: datetime.datetime | None = None
 
         self._completed_loops = 0
 
@@ -86,7 +86,7 @@ class Routine:
 
         self._before = None
         self._after = None
-        self._error: Optional[Callable[..., Coroutine[Any, Any, None]]] = None
+        self._error: Callable[..., Coroutine[Any, Any, None]] | None = None
 
         self._stop_set = False
         self._restarting = False
@@ -247,12 +247,12 @@ class Routine:
         return self._completed_loops
 
     @property
-    def remaining_iterations(self) -> Optional[int]:
+    def remaining_iterations(self) -> int | None:
         """A count of remaining iterations."""
         return self._remaining_iterations
 
     @property
-    def start_time(self) -> Optional[datetime.datetime]:
+    def start_time(self) -> datetime.datetime | None:
         """The time the routine was started.
 
         .. note::
@@ -261,7 +261,7 @@ class Routine:
         """
         return self._start_time
 
-    def _can_be_cancelled(self) -> Optional[bool]:
+    def _can_be_cancelled(self) -> bool | None:
         return self._task and not self._task.done()
 
     async def _routine(self, *args, **kwargs) -> None:
@@ -344,12 +344,12 @@ class Routine:
 
 def routine(
     *,
-    seconds: Optional[float] = 0,
-    minutes: Optional[float] = 0,
-    hours: Optional[float] = 0,
-    time: Optional[datetime.datetime] = None,
-    iterations: Optional[int] = None,
-    wait_first: Optional[bool] = False,
+    seconds: float | None = 0,
+    minutes: float | None = 0,
+    hours: float | None = 0,
+    time: datetime.datetime | None = None,
+    iterations: int | None = None,
+    wait_first: bool | None = False,
 ):
     """
     |deco|

@@ -14,5 +14,5 @@ class PaginationPayload(TypedDict):
 
 
 class BasePayload(TypedDict):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     pagination: NotRequired[PaginationPayload]

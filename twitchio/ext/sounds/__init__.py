@@ -29,7 +29,9 @@ import subprocess
 import threading
 import time
 from functools import partial
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from collections.abc import Callable, Coroutine
 
 import pyaudio  # type: ignore
 from typing_extensions import Self
@@ -126,7 +128,7 @@ class Sound:
 
     YTDL = YoutubeDL(YTDLOPTS)
 
-    def __init__(self, source: Optional[Union[str, io.BufferedIOBase]] = None, *, info: Optional[dict] = None):
+    def __init__(self, source: str | io.BufferedIOBase | None = None, *, info: dict | None = None):
         self.title = None
         self.url = None
 
@@ -172,7 +174,7 @@ class Sound:
         self._rate = 48000
 
     @classmethod
-    async def ytdl_search(cls, search: str, *, loop: Optional[asyncio.AbstractEventLoop] = None):
+    async def ytdl_search(cls, search: str, *, loop: asyncio.AbstractEventLoop | None = None):
         """|coro|
 
         Search songs via YouTube ready to be played.
@@ -234,7 +236,7 @@ class AudioPlayer:
         self._pa = pyaudio.PyAudio()
         self._stream = None
 
-        self._current: Optional[Sound] = None
+        self._current: Sound | None = None
 
         self._paused: bool = False
         self._playing: bool = False
@@ -245,11 +247,11 @@ class AudioPlayer:
 
         self._loop = asyncio.get_event_loop()
 
-        self._devices: Dict[int, OutputDevice] = {}
+        self._devices: dict[int, OutputDevice] = {}
         self._get_devices()
 
-        self._active_devices: List[OutputDevice] = []
-        self._use_device: Optional[OutputDevice] = None
+        self._active_devices: list[OutputDevice] = []
+        self._use_device: OutputDevice | None = None
 
     def _get_devices(self):
         for index in range(self._pa.get_device_count()):
@@ -366,12 +368,12 @@ class AudioPlayer:
         self._volume = level
 
     @property
-    def devices(self) -> Dict[int, OutputDevice]:
+    def devices(self) -> dict[int, OutputDevice]:
         """Return a dict of :class:`OutputDevice` that can be used to output audio."""
         return self._devices
 
     @property
-    def active_device(self) -> Optional[OutputDevice]:
+    def active_device(self) -> OutputDevice | None:
         """Return the active output device for this player. Could be None if default is being used.
 
         This property can also be set with a new :class:`OutputDevice` to change audio output.

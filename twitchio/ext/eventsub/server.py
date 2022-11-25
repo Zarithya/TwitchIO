@@ -57,8 +57,8 @@ class EventSubClient(web.Application):
         *,
         client_id: str,
         client_secret: str,
-        host: Optional[str] = "https://0.0.0.0",
-        port: Optional[int] = 4000,
+        host: str | None = "https://0.0.0.0",
+        port: int | None = 4000,
         webhook_callback: str = "/callback",
     ):
         super().__init__()
@@ -77,11 +77,11 @@ class EventSubClient(web.Application):
         self._client_id = client_id
         self._client_secret = client_secret
 
-        self._client: Optional[Client] = None
+        self._client: Client | None = None
         self._client_ready = asyncio.Event()
 
     async def subscribe(
-        self, topics: Union[EventSubType, List[EventSubType]], channels: List[Union[str, int, Channel]]
+        self, topics: EventSubType | list[EventSubType], channels: list[str | int | Channel]
     ) -> None:
         pass
 

@@ -12,6 +12,6 @@ class Extension(TypedDict):
 
 
 class ExtensionBuilder(TypedDict):
-    panel: Dict[str, Extension]
-    overlay: Dict[str, Extension]
-    component: Dict[str, Extension]
+    panel: dict[str, Extension]
+    overlay: dict[str, Extension]
+    component: dict[str, Extension]

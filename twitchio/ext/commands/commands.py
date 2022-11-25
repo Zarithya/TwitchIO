@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import inspect
 import shlex
-from typing import Any, Callable, Collection, Coroutine, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+
+from collections.abc import Callable, Collection, Coroutine
 
 from typing_extensions import reveal_type
 
@@ -21,9 +23,9 @@ class Command:
         self,
         callback: Callback,
         *,
-        name: Optional[str] = None,
-        aliases: Optional[Collection[str]] = None,
-        positional_delimiter: Optional[str] = "=",
+        name: str | None = None,
+        aliases: Collection[str] | None = None,
+        positional_delimiter: str | None = "=",
         **kwargs,
     ):
         self._callback = callback
@@ -53,9 +55,9 @@ class Command:
     def _parse_args(
         self, to_parse: str, /
     ) -> tuple[
-        Dict[str, Dict[str, Union[int, str, List[str], None, Dict[str, Union[int, str]], Dict[str, int | list[str]]]]],
-        Dict[str, str],
-    ]:
+        dict[str, dict[str, int | str | list[str] | None | dict[str, int | str] | dict[str, int | list[str]]]],
+        dict[str, str],
+    ]: # TODO Double check if this typehint is excessive / what is really returned
 
         splat = shlex.split(to_parse)
         splat_copy = splat.copy()
@@ -191,10 +193,10 @@ CommandT = TypeVar("CommandT", bound=Command)
 
 def command(
     *,
-    name: Optional[str] = None,
-    aliases: Optional[Collection[str]] = None,
-    cls: Type[CommandT] = Command,
-    positional_delimiter: Optional[str] = "=",
+    name: str | None = None,
+    aliases: Collection[str] | None = None,
+    cls: type[CommandT] = Command,
+    positional_delimiter: str | None = "=",
 ):
     if cls and not issubclass(cls, Command):
         raise TypeError(f"cls parameter must derive from {Command!r}.")

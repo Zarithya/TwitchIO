@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 The MIT License (MIT)
 
@@ -150,42 +148,42 @@ class CustomReward:
         self.prompt: str = obj["prompt"]
         self.input_required: bool = obj["is_user_input_required"]
 
-        self.max_per_stream: Tuple[bool, int] = (
+        self.max_per_stream: tuple[bool, int] = (
             obj["max_per_stream_setting"]["is_enabled"],
             obj["max_per_stream_setting"]["max_per_stream"],
         )
-        self.max_per_user_stream: Tuple[bool, int] = (
+        self.max_per_user_stream: tuple[bool, int] = (
             obj["max_per_user_per_stream_setting"]["is_enabled"],
             obj["max_per_user_per_stream_setting"]["max_per_user_per_stream"],
         )
-        self.cooldown: Tuple[bool, int] = (
+        self.cooldown: tuple[bool, int] = (
             obj["global_cooldown_setting"]["is_enabled"],
             obj["global_cooldown_setting"]["global_cooldown_seconds"],
         )
         self.paused: bool = obj["is_paused"]
         self.in_stock: bool = obj["is_in_stock"]
         self.redemptions_skip_queue: bool = obj["should_redemptions_skip_request_queue"]
-        self.redemptions_current_stream: Optional[int] = obj["redemptions_redeemed_current_stream"]
-        self.cooldown_until: Optional[datetime.datetime] = obj["cooldown_expires_at"] and parse_timestamp(
+        self.redemptions_current_stream: int | None = obj["redemptions_redeemed_current_stream"]
+        self.cooldown_until: datetime.datetime | None = obj["cooldown_expires_at"] and parse_timestamp(
             obj["cooldown_expires_at"]
         )
 
     async def edit(
         self,
-        title: Optional[str] = None,
-        prompt: Optional[str] = None,
-        cost: Optional[int] = None,
-        background_color: Optional[str] = None,
-        enabled: Optional[bool] = None,
-        input_required: Optional[bool] = None,
-        max_per_stream_enabled: Optional[bool] = None,
-        max_per_stream: Optional[int] = None,
-        max_per_user_per_stream_enabled: Optional[bool] = None,
-        max_per_user_per_stream: Optional[int] = None,
-        global_cooldown_enabled: Optional[bool] = None,
-        global_cooldown: Optional[int] = None,
-        paused: Optional[bool] = None,
-        redemptions_skip_queue: Optional[bool] = None,
+        title: str | None = None,
+        prompt: str | None = None,
+        cost: int | None = None,
+        background_color: str | None = None,
+        enabled: bool | None = None,
+        input_required: bool | None = None,
+        max_per_stream_enabled: bool | None = None,
+        max_per_stream: int | None = None,
+        max_per_user_per_stream_enabled: bool | None = None,
+        max_per_user_per_stream: int | None = None,
+        global_cooldown_enabled: bool | None = None,
+        global_cooldown: int | None = None,
+        paused: bool | None = None,
+        redemptions_skip_queue: bool | None = None,
     ) -> Self:
         """
         Edits the reward. Note that apps can only modify rewards they have made.
@@ -344,7 +342,7 @@ class CustomRewardRedemption:
 
     __slots__ = "_http", "_broadcaster", "id", "user", "input", "status", "redeemed_at", "reward"
 
-    def __init__(self, http: HTTPHandler, obj: dict, parent: Optional[CustomReward]):
+    def __init__(self, http: HTTPHandler, obj: dict, parent: CustomReward | None):
         self._http: HTTPHandler = http
         self._broadcaster = PartialUser(http, obj["broadcaster_id"], obj["broadcaster_name"])
         self.id: str = obj["id"]
@@ -352,7 +350,7 @@ class CustomRewardRedemption:
         self.input: str = obj["user_input"]
         self.status: Literal["UNFULFILLED", "FULFILLED", "CANCELLED"] = obj["status"]
         self.redeemed_at: datetime.datetime = parse_timestamp(obj["redeemed_at"])
-        self.reward: Union[PartialCustomReward, CustomReward] = parent or PartialCustomReward(obj["reward"])
+        self.reward: PartialCustomReward | CustomReward = parent or PartialCustomReward(obj["reward"])
 
     def __repr__(self):
         return f"<CustomRewardRedemption id={self.id} user={self.user} input={self.input} status={self.status} redeemed_at={self.redeemed_at}>"

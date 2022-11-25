@@ -73,7 +73,7 @@ class HTTPException(TwitchIOException):
 
 
 class HTTPResponseException(HTTPException):
-    def __init__(self, response: aiohttp.ClientResponse, data: ErrorType, *, message: Optional[str] = None) -> None:
+    def __init__(self, response: aiohttp.ClientResponse, data: ErrorType, *, message: str | None = None) -> None:
         self.status = response.status
         self._response = response
         self.message = message or data["message"]

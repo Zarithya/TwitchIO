@@ -26,7 +26,9 @@ import asyncio
 import copy
 import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, ClassVar, Generator, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar, cast
+
+from collections.abc import Awaitable, Callable, Generator
 
 import aiohttp
 import multidict

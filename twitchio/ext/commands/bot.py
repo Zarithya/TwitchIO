@@ -5,7 +5,9 @@ import importlib.util
 import sys
 import traceback
 import types
-from typing import Any, Callable, Coroutine, Type
+from typing import Any
+
+from collections.abc import Callable, Coroutine
 
 from twitchio import Client, Message
 
@@ -91,7 +93,7 @@ class Bot(Client):
         else:
             raise TypeError("prefix parameter must be a str, list of str or callable/coroutine returning either.")
 
-    def get_context(self, message: Message, *, cls: Type[Context] = Context) -> Context:
+    def get_context(self, message: Message, *, cls: type[Context] = Context) -> Context:
         if cls and not issubclass(cls, Context):
             raise TypeError(f"cls parameter must derive from {Context!r}.")
 

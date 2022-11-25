@@ -741,10 +741,7 @@ class PartialUser:
         title: :class:`str`
             Optional title of the stream.
         """
-        gid = None
-        if game_id is not None:
-            gid = str(game_id)
-
+        gid = str(game_id) if game_id is not None else None
         await self._http.patch_channel(
             self,
             broadcaster_id=str(self.id),
@@ -906,7 +903,7 @@ class BitLeaderboardUser(PartialUser):
     __slots__ = "rank", "score"
 
     def __init__(self, http: HTTPHandler, data: dict):
-        super(BitLeaderboardUser, self).__init__(http, id=data["user_id"], name=data["user_name"])
+        super().__init__(http, id=data["user_id"], name=data["user_name"])
         self.rank: int = data["rank"]
         self.score: int = data["score"]
 
@@ -935,7 +932,7 @@ class UserBan(PartialUser):  # TODO will probably rework this
     __slots__ = ("created_at", "expires_at", "reason", "moderator")
 
     def __init__(self, http: HTTPHandler, data: dict):
-        super(UserBan, self).__init__(http, id=data["user_id"], name=data["user_login"])
+        super().__init__(http, id=data["user_id"], name=data["user_login"])
         self.created_at: datetime.datetime = parse_timestamp(data["created_at"])
         self.expires_at: datetime.datetime | None = parse_timestamp(data["expires_at"]) if data["expires_at"] else None
         self.reason: str = data["reason"]
