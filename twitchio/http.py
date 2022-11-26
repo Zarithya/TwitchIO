@@ -26,9 +26,8 @@ import asyncio
 import copy
 import datetime
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar, cast
-
 from collections.abc import Awaitable, Callable, Generator
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar, cast
 
 import aiohttp
 import multidict
@@ -642,13 +641,18 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         return self.request_paginated_route(Route("GET", "games/top", None, target=target))
 
     def get_games(
-        self, game_ids: list[int] | None, game_names: list[str] | None, target: PartialUser | None = None
+        self,
+        game_ids: list[int] | None,
+        game_names: list[str] | None,
+        igdb_ids: list[int] | None,
+        target: PartialUser | None = None,
     ) -> HTTPAwaitableAsyncIterator:
-        if not game_ids or not game_names:
-            raise ValueError("At least one of game_ids and game_names must be provided")
+        if not game_ids or not game_names or not igdb_ids:
+            raise ValueError("At least one of game_ids, game_names or igdb_ids must be provided")
         params = []
         params.extend(("id", id) for id in game_ids)
         params.extend(("name", name) for name in game_names)
+        params.extend(("igdb_id", id) for id in igdb_ids)
         return self.request_paginated_route(Route("GET", "games", None, parameters=params, target=target))
 
     def get_hype_train(

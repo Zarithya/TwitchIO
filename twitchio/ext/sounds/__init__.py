@@ -28,10 +28,9 @@ import logging
 import subprocess
 import threading
 import time
+from collections.abc import Callable, Coroutine
 from functools import partial
 from typing import Any, Dict, List, Optional, Union
-
-from collections.abc import Callable, Coroutine
 
 import pyaudio  # type: ignore
 from typing_extensions import Self

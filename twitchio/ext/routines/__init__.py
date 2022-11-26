@@ -25,9 +25,8 @@ import asyncio
 import datetime
 import sys
 import traceback
-from typing import Any, Optional, cast
-
 from collections.abc import Callable, Coroutine
+from typing import Any, Optional, cast
 
 __all__ = ("Routine", "routine")
 

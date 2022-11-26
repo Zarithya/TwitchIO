@@ -80,9 +80,7 @@ class EventSubClient(web.Application):
         self._client: Client | None = None
         self._client_ready = asyncio.Event()
 
-    async def subscribe(
-        self, topics: EventSubType | list[EventSubType], channels: list[str | int | Channel]
-    ) -> None:
+    async def subscribe(self, topics: EventSubType | list[EventSubType], channels: list[str | int | Channel]) -> None:
         pass
 
     async def _callback(self, request: web.Request) -> web.Response:
