@@ -27,8 +27,8 @@ DEALINGS IN THE SOFTWARE.
 import os
 import pathlib
 import re
-from setuptools import setup
 
+from setuptools import setup
 
 ROOT = pathlib.Path(__file__).parent
 on_rtd = os.getenv("READTHEDOCS") == "True"

@@ -26,9 +26,8 @@ import asyncio
 import inspect
 import sys
 import traceback
-from typing import TYPE_CHECKING, Any
-
 from collections.abc import Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 from twitchio.http import HTTPAwaitableAsyncIterator, HTTPHandler
 
@@ -534,11 +533,15 @@ class Client:
         return [ChatterColor(self._http, x) for x in data["data"]]
 
     async def fetch_games(
-        self, ids: list[int] | None = None, names: list[str] | None = None, target: PartialUser | None = None
+        self,
+        ids: list[int] | None = None,
+        names: list[str] | None = None,
+        igdb_ids: list[int] | None = None,
+        target: PartialUser | None = None,
     ) -> list[Game]:
         """|coro|
 
-        Fetches games by id or name.
+        Fetches games by id, name or IGDB id.
         At least one id or name must be provided
 
         Parameters
@@ -547,6 +550,8 @@ class Client:
             An optional list of game ids
         names: Optional[list[:class:`str`]]
             An optional list of game names
+        igdb_ids: Optional[list[:class:`int`]]
+            An optional list of IGDB ids.
         target: Optional[:class:`~twitchio.PartialUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler
 
@@ -555,7 +560,9 @@ class Client:
             list[:class:`twitchio.Game`]
         """
 
-        data: HTTPAwaitableAsyncIterator[Game] = self._http.get_games(game_ids=ids, game_names=names, target=target)
+        data: HTTPAwaitableAsyncIterator[Game] = self._http.get_games(
+            game_ids=ids, game_names=names, igdb_ids=igdb_ids, target=target
+        )
         data.set_adapter(lambda http, data: Game(http, data))
 
         return await data

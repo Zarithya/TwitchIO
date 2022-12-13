@@ -22,9 +22,8 @@ from __future__ import annotations
 
 import random
 import time
-from typing import Generic, Literal, TypeVar, overload
-
 from collections.abc import Callable
+from typing import Generic, Literal, TypeVar, overload
 
 T = TypeVar("T", bool, Literal[True], Literal[False])
 

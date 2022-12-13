@@ -3,9 +3,8 @@ from __future__ import annotations
 import asyncio
 import inspect
 import shlex
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
-
 from collections.abc import Callable, Collection, Coroutine
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from typing_extensions import reveal_type
 
@@ -57,7 +56,7 @@ class Command:
     ) -> tuple[
         dict[str, dict[str, int | str | list[str] | None | dict[str, int | str] | dict[str, int | list[str]]]],
         dict[str, str],
-    ]: # TODO Double check if this typehint is excessive / what is really returned
+    ]:  # TODO Double check if this typehint is excessive / what is really returned
 
         splat = shlex.split(to_parse)
         splat_copy = splat.copy()

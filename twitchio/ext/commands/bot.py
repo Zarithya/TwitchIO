@@ -5,9 +5,8 @@ import importlib.util
 import sys
 import traceback
 import types
-from typing import Any
-
 from collections.abc import Callable, Coroutine
+from typing import Any
 
 from twitchio import Client, Message
 
