@@ -94,7 +94,7 @@
 
    exts/commands
    exts/pubsub
-   exts/eventsub
+   exts/eventsub/index
    exts/routines
    exts/sounds
 
