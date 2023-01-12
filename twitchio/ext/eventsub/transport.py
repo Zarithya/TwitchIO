@@ -127,7 +127,9 @@ class WebhookTransport(BaseTransport):
 
         await self.site.stop()
         self.site = None
-        self._stopping.set()
+
+        if self._stopping is not None:
+            self._stopping.set()
 
     async def request_hook(self, request: web.Request) -> web.Response:
         event: BaseEvent | None = await self.transform_event(request)
