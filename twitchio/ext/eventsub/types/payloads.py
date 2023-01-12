@@ -26,26 +26,40 @@ class Subscription(TypedDict):
     type: str
     version: str
     cost: int
-    condition: dict[str, str]  # FIXME figure out possibilities for this
+    condition: Condition
     created_at: str
     transport: SubscriptionTransport
 
 
 class WebsocketMessageMetadata(TypedDict):
     message_id: str
-    timestamp: str
+    message_timestamp: str
     message_type: Literal["notification", "revocation", "reconnect", "session_keepalive"]
-    # FIXME: is that all?
+    subscription_type: NotRequired[str]
+    subscription_version: NotRequired[str]
 
 
 class WebsocketMessagePayload(TypedDict):
     subscription: Subscription
     event: dict[str, AllPayloads]
 
+class WebsocketReconnectPayload(TypedDict):
+    session: WebsocketMessageReconnectPayloadSession
+
+class WebsocketMessageReconnectPayloadSession(TypedDict):
+    id: str
+    status: Literal["reconnecting"]
+    keepalive_timeout_seconds: int | None
+    reconnect_url: str
+    connected_at: str
 
 class WebsocketMessage(TypedDict):
     metadata: WebsocketMessageMetadata
     payload: NotRequired[WebsocketMessagePayload]
+
+class WebsocketReconnectMessage(TypedDict):
+    metadata: WebsocketMessageMetadata
+    payload: WebsocketReconnectPayload
 
 
 class WebhookMessage(TypedDict):
@@ -56,6 +70,20 @@ class WebhookMessage(TypedDict):
 class WebhookChallenge(TypedDict):
     subscription: Subscription
     challenge: str
+
+class Condition(TypedDict):
+    broadcaster_user_id: NotRequired[str]
+    to_broadcaster_user_id: NotRequired[str]
+    from_broadcaster_user_id: NotRequired[str]
+    moderator_user_id: NotRequired[str]
+    reward_id: NotRequired[str]
+
+    extension_client_id: NotRequired[str]
+    client_id: NotRequired[str]
+
+    # these are for drops, which arent implemented
+    category_id: NotRequired[str]
+    campaign_id: NotRequired[str]
 
 
 ## raw payloads

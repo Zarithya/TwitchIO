@@ -50,6 +50,12 @@ class Client:
         self.client: _BaseClient | None = client
 
         self._transport._prepare(self)
+    
+    async def start(self) -> None:
+        await self._transport.start()
+    
+    async def stop(self) -> None:
+        await self._transport.stop()
 
     async def _handle_event(self, name: str, event: BaseEvent) -> None:
         if self.client:

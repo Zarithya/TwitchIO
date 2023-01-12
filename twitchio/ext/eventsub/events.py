@@ -17,11 +17,12 @@ if TYPE_CHECKING:
         WebhookMessage as _WebhookMessage,
         WebsocketMessage as _WebsocketMessage,
         WebsocketMessageMetadata as _WebsocketMessageMetadata,
+        WebsocketReconnectMessage as _WebsocketReconnectMessage
     )
 
     TransportType = BaseTransport
 
-__all__ = ("Subscription", "BaseMeta", "WebhookMeta", "WebsocketMeta")
+__all__ = ("Subscription", "BaseMeta", "WebhookMeta", "WebsocketMeta", "RevocationEvent", "ChallengeEvent", "NotificationEvent", "ReconnectEvent", "KeepaliveEvent")
 
 
 class Subscription:
@@ -179,7 +180,7 @@ class BaseEvent(Protocol):
             self.prepare(payload["payload"]["event"])
 
         else:
-            self.prepare({})
+            self.prepare(payload) # type: ignore
 
         return self
 
@@ -284,3 +285,62 @@ class NotificationEvent(BaseEvent, Generic[D]):
         d = _event_map[typ](self.transport, data)
 
         self.data = d
+
+
+class ReconnectEvent(BaseEvent):
+    """
+    This event is created when the twitch websocket wants the client to reconnect.
+    Reconnecting is automatically handled, this event is simply to inform you of it happening.
+
+    Attributes
+    -----------
+    reconnect_url: class:`str`
+        The URL provided by twitch to reconnect to. This will keep the existing subscriptions intact for us.
+    subscription: :class:`Subscription`
+        The subscription that triggered this event.
+    meta: :class:`WebhookMeta` | :class:`WebsocketMeta`
+        The metadata associated with this event. There are slight differences between the webhook metadata and websocket metadata.
+        This was previously known as ``headers``.
+
+        .. versionchanged:: 3.0
+    transport: :class:`BaseTransport`
+        The transport that received this event.
+
+        ..versionadded:: 3.0
+    """
+    subscription: Subscription
+    meta: BaseMeta
+    transport: BaseTransport
+    reconnect_url: str
+
+    __slots__ = ("reconect_url",)
+
+    def prepare(self, data: _WebsocketReconnectMessage) -> None:
+        self.reconect_url = data["payload"]["session"]["reconnect_url"]
+
+
+class KeepaliveEvent(BaseEvent):
+    """
+    This event is created to fill space and let you know twitch is still sending you events after a spout of silence.
+    Nothing needs to be done.
+
+    Attributes
+    -----------
+    subscription: :class:`Subscription`
+        The subscription that triggered this event.
+    meta: :class:`WebhookMeta` | :class:`WebsocketMeta`
+        The metadata associated with this event. There are slight differences between the webhook metadata and websocket metadata.
+        This was previously known as ``headers``.
+
+        .. versionchanged:: 3.0
+    transport: :class:`BaseTransport`
+        The transport that received this event.
+
+        ..versionadded:: 3.0
+    """
+    subscription: Subscription
+    meta: BaseMeta
+    transport: BaseTransport
+
+    def prepare(self, data: dict) -> None:
+        pass
