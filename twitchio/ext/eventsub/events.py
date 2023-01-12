@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import datetime
-from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, Type, TypeVar, Union
 
 from typing_extensions import Self
 
-from .models import _event_map, AllModels
 from ... import PartialUser
 from ...utils import json_loader, parse_timestamp as _parse_timestamp
+from .models import AllModels, _event_map
 
 if TYPE_CHECKING:
     from .transport import BaseTransport
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
         WebhookMessage as _WebhookMessage,
         WebsocketMessage as _WebsocketMessage,
         WebsocketMessageMetadata as _WebsocketMessageMetadata,
-        WebsocketReconnectMessage as _WebsocketReconnectMessage
+        WebsocketReconnectMessage as _WebsocketReconnectMessage,
     )
 
     TransportType = BaseTransport

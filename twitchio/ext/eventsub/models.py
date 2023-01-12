@@ -1,17 +1,15 @@
 from __future__ import annotations
-from typing import Protocol, Any, Union, Mapping, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Any, Mapping, Protocol, Union
 
 from twitchio import PartialUser
 from twitchio.utils import parse_timestamp
 
 if TYPE_CHECKING:
     import datetime
-    from .transport import BaseTransport
 
-    from .types.payloads import (
-        ChannelUpdate as ChannelUpdatePayload,
-        Images as ImagePayload,
-    )
+    from .transport import BaseTransport
+    from .types.payloads import ChannelUpdate as ChannelUpdatePayload, Images as ImagePayload
 
 __all__ = (
     "ImageLinks",

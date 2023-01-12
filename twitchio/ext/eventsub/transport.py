@@ -1,25 +1,34 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Protocol, cast, Type
-
-import aiohttp
-import logging
-from aiohttp import web
 import hashlib
 import hmac
+import logging
+from typing import TYPE_CHECKING, Any, Protocol, Type, cast
+
+import aiohttp
+from aiohttp import web
 from yarl import URL
 
-from . import events
-from twitchio import __version__, PartialUser
+from twitchio import PartialUser, __version__
 from twitchio.http import Route
 from twitchio.utils import json_loader
 
+from . import events
+
 if TYPE_CHECKING:
     from .client import Client as _Client
-    from .events import BaseEvent, ChallengeEvent, KeepaliveEvent, ReconnectEvent, NotificationEvent, RevocationEvent, WebhookMeta as _WebhookMeta
-    from .types.payloads import Condition, WebsocketMessage
+    from .events import (
+        BaseEvent,
+        ChallengeEvent,
+        KeepaliveEvent,
+        NotificationEvent,
+        ReconnectEvent,
+        RevocationEvent,
+        WebhookMeta as _WebhookMeta,
+    )
     from .models import AllModels
+    from .types.payloads import Condition, WebsocketMessage
 
 __all__ = ("BaseTransport", "WebhookTransport", "WebsocketTransport")
 logger = logging.getLogger("twitchio.ext.eventsub.transport")
