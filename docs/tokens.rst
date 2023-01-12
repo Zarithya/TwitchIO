@@ -77,6 +77,6 @@ Here is an example of a Token Handler that fetches from a database for API calls
         async def get_irc_token(self, shard_id: int) -> twitchio.Token:
             return twitchio.Token(self.client.config["irc_token"])
 
-        async def get_client_credentials(self) -> tuple[str, str]:
+        async def get_client_credentials(self) -> tuple[str, str | None]:
             return self.client.config["client_id"], self.bot.config["client_secret"]
             # you don't *need* to return a client secret, however the library cannot refresh tokens without it!
