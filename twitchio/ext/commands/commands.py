@@ -57,7 +57,6 @@ class Command:
         dict[str, dict[str, int | str | list[str] | None | dict[str, int | str] | dict[str, int | list[str]]]],
         dict[str, str],
     ]:  # TODO Double check if this typehint is excessive / what is really returned
-
         splat = shlex.split(to_parse)
         splat_copy = splat.copy()
 
@@ -156,7 +155,6 @@ class Command:
                 try:
                     arg = args[index - 2]
                 except IndexError:
-
                     if not isinstance(default, type):
                         newargs.append(default)
                         continue

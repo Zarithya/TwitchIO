@@ -50,10 +50,10 @@ class Client:
         self.client: _BaseClient | None = client
 
         self._transport._prepare(self)
-    
+
     async def start(self) -> None:
         await self._transport.start()
-    
+
     async def stop(self) -> None:
         await self._transport.stop()
 
@@ -61,13 +61,13 @@ class Client:
         if self.client:
             # TODO: client doesnt have dispatching mechanisms
             ...
-        
+
         attr = getattr(self, f"event_{name}", None)
         if not attr:
             return
-        
-        await attr(event) # TODO: capture errors and have self-contained error handler
-    
+
+        await attr(event)  # TODO: capture errors and have self-contained error handler
+
     # subclassable events
 
     async def event_challenge(self, event: ChallengeEvent) -> None:

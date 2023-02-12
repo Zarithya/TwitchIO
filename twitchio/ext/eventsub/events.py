@@ -23,7 +23,17 @@ if TYPE_CHECKING:
 
     TransportType = BaseTransport
 
-__all__ = ("Subscription", "BaseMeta", "WebhookMeta", "WebsocketMeta", "RevocationEvent", "ChallengeEvent", "NotificationEvent", "ReconnectEvent", "KeepaliveEvent")
+__all__ = (
+    "Subscription",
+    "BaseMeta",
+    "WebhookMeta",
+    "WebsocketMeta",
+    "RevocationEvent",
+    "ChallengeEvent",
+    "NotificationEvent",
+    "ReconnectEvent",
+    "KeepaliveEvent",
+)
 
 
 class Subscription:
@@ -181,7 +191,7 @@ class BaseEvent(Protocol):
             self.prepare(payload["payload"]["event"])
 
         else:
-            self.prepare(payload) # type: ignore
+            self.prepare(payload)  # type: ignore
 
         return self
 
@@ -251,7 +261,9 @@ class ChallengeEvent(BaseEvent):
     def prepare(self, data: _WebhookChallenge) -> None:
         self.challenge: str = data["challenge"]
 
+
 D = TypeVar("D", bound=AllModels)
+
 
 class NotificationEvent(BaseEvent, Generic[D]):
     """
@@ -309,6 +321,7 @@ class ReconnectEvent(BaseEvent):
 
         ..versionadded:: 3.0
     """
+
     subscription: Subscription
     meta: BaseMeta
     transport: BaseTransport
@@ -339,6 +352,7 @@ class KeepaliveEvent(BaseEvent):
 
         ..versionadded:: 3.0
     """
+
     subscription: Subscription
     meta: BaseMeta
     transport: BaseTransport

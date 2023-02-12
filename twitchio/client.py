@@ -434,7 +434,6 @@ class Client:
         """
 
         try:
-
             data = await self._http.get_channels(broadcaster_ids=broadcaster_ids, target=target)
 
             return [ChannelInfo(self._http, c) for c in data["data"]]

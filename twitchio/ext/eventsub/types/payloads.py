@@ -43,8 +43,10 @@ class WebsocketMessagePayload(TypedDict):
     subscription: Subscription
     event: dict[str, AllPayloads]
 
+
 class WebsocketReconnectPayload(TypedDict):
     session: WebsocketMessageReconnectPayloadSession
+
 
 class WebsocketMessageReconnectPayloadSession(TypedDict):
     id: str
@@ -53,9 +55,11 @@ class WebsocketMessageReconnectPayloadSession(TypedDict):
     reconnect_url: str
     connected_at: str
 
+
 class WebsocketMessage(TypedDict):
     metadata: WebsocketMessageMetadata
     payload: NotRequired[WebsocketMessagePayload]
+
 
 class WebsocketReconnectMessage(TypedDict):
     metadata: WebsocketMessageMetadata
@@ -70,6 +74,7 @@ class WebhookMessage(TypedDict):
 class WebhookChallenge(TypedDict):
     subscription: Subscription
     challenge: str
+
 
 class Condition(TypedDict):
     broadcaster_user_id: NotRequired[str]

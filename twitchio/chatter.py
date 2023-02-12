@@ -28,7 +28,6 @@ __all__ = ("PartialChatter",)
 
 
 class PartialChatter:
-
     __slots__ = ("_name", "_colour", "_display_name", "_mod", "_turbo", "_id", "tags", "badges")
 
     def __init__(

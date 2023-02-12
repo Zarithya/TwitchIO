@@ -30,7 +30,6 @@ __all__ = ("Channel",)
 
 
 class Channel(Messageable):
-
     __slots__ = ("_name", "_id", "_websocket", "_chatters")
 
     def __init__(self, **attrs):

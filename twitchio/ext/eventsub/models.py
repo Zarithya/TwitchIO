@@ -11,12 +11,8 @@ if TYPE_CHECKING:
     from .transport import BaseTransport
     from .types.payloads import ChannelUpdate as ChannelUpdatePayload, Images as ImagePayload
 
-__all__ = (
-    "ImageLinks",
-    "EventData",
-    "ChannelUpdate",
-    "ChannelFollow"
-)
+__all__ = ("ImageLinks", "EventData", "ChannelUpdate", "ChannelFollow")
+
 
 def _transform_user(transport: BaseTransport, prefix: str, data: Mapping[str, Any]) -> PartialUser:
     ...
@@ -44,6 +40,7 @@ class ImageLinks:
         self.size_1x: str = payload["url_1x"]
         self.size_2x: str = payload["url_2x"]
         self.size_4x: str = payload["url_4x"]
+
 
 class EventData(Protocol):
     __slots__ = ()
@@ -89,6 +86,7 @@ class ChannelUpdate(EventData):
         self.category_name: str = payload["category_name"]
         self.is_mature: bool = payload["is_mature"]
 
+
 class ChannelFollow(EventData):
     """
     A channel follow. Indicates someone followed the broadcaster.
@@ -102,6 +100,7 @@ class ChannelFollow(EventData):
     followed_at: :class:`datetime.datetime`
         The time the follow happened.
     """
+
     __slots__ = ("user", "broadcaster", "followed_at")
     _dispatches_as = "channel_follow"
     _required_scopes = None
@@ -115,7 +114,4 @@ class ChannelFollow(EventData):
 
 
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
-AllModels = Union[
-    ChannelUpdate,
-    ChannelFollow
-]
+AllModels = Union[ChannelUpdate, ChannelFollow]

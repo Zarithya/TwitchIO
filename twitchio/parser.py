@@ -85,7 +85,6 @@ class IRCPayload:
 
     @classmethod
     def _parse(cls, data: str):
-
         try:
             channel = CHANNEL_REGEX.search(data)
             if channel:
