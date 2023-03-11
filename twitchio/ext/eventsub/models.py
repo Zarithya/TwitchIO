@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Protocol, Union
+from typing import TYPE_CHECKING, Any, Mapping, Protocol, Type, Union, Literal
 
 from twitchio import PartialUser
 from twitchio.utils import parse_timestamp
@@ -9,13 +9,29 @@ if TYPE_CHECKING:
     import datetime
 
     from .transport import BaseTransport
-    from .types.payloads import ChannelUpdate as ChannelUpdatePayload, Images as ImagePayload
+    from .types.payloads import (
+        ChannelFollow as ChannelFollowPayload,
+        ChannelUpdate as ChannelUpdatePayload,
+        ChannelBan as ChannelBanPayload,
+        ChannelSubscribe as ChannelSubscribePayload,
+        ChannelSubscriptionEnd as ChannelSubscribeEndPayload,
+        ChannelSubscriptionGift as ChannelSubscriptionGiftPayload,
+        ChannelSubscriptionMessage as ChannelSubscriptionMessagePayload,
+        ChannelCheer as ChannelCheerPayload,
+        Images as ImagePayload,
+    )
 
 __all__ = (
     "ImageLinks",
     "EventData",
     "ChannelUpdate",
-    "ChannelFollow"
+    "ChannelFollow",
+    "ChannelSubscribe",
+    "ChannelSubscribeEnd",
+    "ChannelSubscribeGift",
+    "ChannelSubscribeMessage",
+    "ChannelCheer",
+    "ChannelBan"
 )
 
 def _transform_user(transport: BaseTransport, prefix: str, data: Mapping[str, Any]) -> PartialUser:
@@ -104,18 +120,221 @@ class ChannelFollow(EventData):
     """
     __slots__ = ("user", "broadcaster", "followed_at")
     _dispatches_as = "channel_follow"
-    _required_scopes = None
-    _version = 1
+    _required_scopes = ("moderator:read:followers", )
+    _version = 2
     _event = "channel.follow"
 
-    def __init__(self, transport: BaseTransport, payload: Any) -> None:
+    def __init__(self, transport: BaseTransport, payload: ChannelFollowPayload) -> None:
         self.user: PartialUser = _transform_user(transport, "user_", payload)
         self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
         self.followed_at: datetime.datetime = parse_timestamp(payload["followed_at"])
+
+class ChannelSubscribe(EventData):
+    """
+    A channel subscription. Indicates someone subscribed to the channel. This does not include resubscriptions.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser`
+        The user who subscribed.
+    broadcaster: :class:`PartialUser`
+        The channel that the user subscribed to.
+    tier: Literal[1000, 2000, 3000]
+        The tier of the subscription. 
+    is_gift: :class:`bool`
+        Whether someone gifted the sub to the subscriber.
+    """
+    __slots__ = ("user", "broadcaster", "tier", "is_gift")
+    _dispatches_as = "channel_subscribe"
+    _required_scopes = ("channel:read:subscriptions", )
+    _version = 1
+    _event = "channel.subscribe"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelSubscribePayload) -> None:
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.tier: Literal[1000 , 2000, 3000] = int(payload["tier"]) # type: ignore
+        self.is_gift: bool = payload["is_gift"]
+
+
+class ChannelSubscribeEnd(EventData):
+    """
+    The end of a channel subscription. Indicates that someone has unsubscribed from the channel.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser`
+        The user who subscribed.
+    broadcaster: :class:`PartialUser`
+        The channel that the user subscribed to.
+    tier: Literal[1000, 2000, 3000]
+        The tier of the subscription. 
+    is_gift: :class:`bool`
+        Whether someone gifted the sub to the subscriber.
+    """
+    __slots__ = ("user", "broadcaster", "tier", "is_gift")
+    _dispatches_as = "channel_subscribe_end"
+    _required_scopes = ("channel:read:subscriptions", )
+    _version = 1
+    _event = "channel.subscription.end"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelSubscribePayload) -> None:
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.tier: Literal[1000 , 2000, 3000] = int(payload["tier"]) # type: ignore
+        self.is_gift: bool = payload["is_gift"]
+
+
+class ChannelSubscribeGift(EventData):
+    """
+    A gifted subscription to a channel. This could be one or more gifts.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser` | ``None``
+        The user who gave the gifts. Could be ``None`` if the gift is anonymous.
+    broadcaster: :class:`PartialUser`
+        The channel that the user subscribed to.
+    total: :class:`int`
+        How many gifts were given.
+    cumulative_total: :class:`int` | ``None``
+        How many gifts the user has given in total. This can be ``None`` if the gift is anonymous or the user doesn't share this.
+    tier: Literal[1000, 2000, 3000]
+        The tier of the subscription.
+    is_anonymous: :class:`bool`
+        Whether the gifter is anonymous or not.
+    """
+    __slots__ = ("user", "broadcaster", "total", "cumulative_total", "tier", "is_anonymous")
+    _dispatches_as = "channel_subscribe_gift"
+    _required_scopes = ("channel:read:subscriptions", )
+    _version = 1
+    _event = "channel.subscription.gift"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelSubscriptionGiftPayload) -> None:
+        self.user: PartialUser | None = _transform_user(transport, "user_", payload) if payload["user_id"] else None
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.total: int = payload["total"]
+        self.cumulative_total: int | None = int(payload["cumulative_total"])
+        self.tier: Literal[1000 , 2000, 3000] = int(payload["tier"]) # type: ignore
+        self.is_anonymous: bool = payload["is_anonymous"]
+
+
+class ChannelSubscribeMessage(EventData):
+    """
+    A resubscription message, as seen in chat.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser`
+        The user who gave the gifts.
+    broadcaster: :class:`PartialUser`
+        The channel that the user subscribed to.
+    message: :class:`str`
+        The message sent to chat.
+    emotes: list[dict[Literal["begin", "end", "id"], int | str]]
+        Emotes in the message.
+    cumulative_months: :class:`int`
+        How many total months the user has subscribed to the channel.
+    stream_moths: :class:`int` | ``None``
+        How many months in a row the user has been subscribed to the channel. ``None`` if not shared by the user.
+    tier: Literal[1000, 2000, 3000]
+        The tier of the subscription.
+    duration_months: :class:`bool`
+        The month duration of the subscription. 
+    """
+    __slots__ = ("user", "broadcaster", "message", "emotes", "cumulative_months", "streak_months", "tier", "duration_months")
+    _dispatches_as = "channel_subscribe_message"
+    _required_scopes = ("channel:read:subscriptions", )
+    _version = 1
+    _event = "channel.subscription.message"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelSubscriptionMessagePayload) -> None:
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.message: str = payload["message"]["text"]
+        self.emotes: list[dict[Literal["begin", "end", "id"], str | int]] = payload["message"]["emotes"] # type: ignore
+        self.cumulative_months: int = payload["cumulative_months"]
+        self.streak_months: int | None = payload["streak_months"]
+        self.tier: Literal[1000 , 2000, 3000] = int(payload["tier"]) # type: ignore
+        self.duration_months: int = payload["duration_months"]
+
+
+class ChannelCheer(EventData):
+    """
+    A cheer on a channel. Someone sent an amount of bits.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser` | ``None``
+        The user who gave the gifts. Could be ``None`` if the gifter was anonymous.
+    broadcaster: :class:`PartialUser`
+        The channel that the user subscribed to.
+    message: :class:`str`
+        The message sent to chat.
+    bits: :class:`int`
+        The amount of bits sent.
+    is_anonymous: :class:`bool`
+        Whether the bits were anonymous or not.
+    """
+    __slots__ = ("user", "broadcaster", "message", "bits", "is_anonymous")
+    _dispatches_as = "channel_cheer"
+    _required_scopes = ("bits:read",)
+    _version = 1
+    _event = "channel.cheer"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelCheerPayload) -> None:
+        self.user: PartialUser | None = _transform_user(transport, "user_", payload) if payload["user_id"] else None
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.message: str = payload["message"]
+        self.bits: int = payload["bits"]
+        self.is_anonymous: bool = payload["is_anonymous"]
+
+class ChannelBan(EventData):
+    """
+    A channel ban or timeout. Indicates someone was banned from the channel's chat.
+
+    Attributes
+    -----------
+    user: :class:`PartialUser`
+        The user who was banned.
+    broadcaster: :class:`PartialUser`
+        The channel from which the user was banned.
+    moderator: :class:`PartialUser`
+        The moderator who banned the user.
+    reason: :class:`str`
+        The reason the moderator banned the user.
+    banned_at: :class:`datetime.datetime`
+        When the ban occurred.
+    ends_at: :class:`datetime.datetime` | ``None``
+        When the timeout ends. ``None`` if it is a ban (permanent).
+    is_permanent: :class:`bool`
+        Whether the ban is permanent or a timeout.
+    """
+    __slots__ = ("user", "broadcaster", "moderator", "reason", "banned_at", "ends_at", "is_permanent")
+    _dispatches_as = "channel_ban"
+    _required_scopes = ("channel:moderate", )
+    _version = 1
+    _event = "channel.ban"
+
+
+    def __init__(self, transport: BaseTransport, payload: ChannelBanPayload) -> None:
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.moderator: PartialUser = _transform_user(transport, "moderator_", payload)
+        self.reason: str = payload["reason"]
+        self.banned_at: datetime.datetime = parse_timestamp(payload["banned_at"])
+        self.ends_at: datetime.datetime | None = parse_timestamp(payload["ends_at"]) if payload["ends_at"] else None
+        self.is_permanent: bool = payload["is_permanent"]
 
 
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
 AllModels = Union[
     ChannelUpdate,
-    ChannelFollow
+    ChannelFollow,
+    ChannelSubscribe,
+    ChannelSubscribeEnd,
+    ChannelSubscribeGift,
+    ChannelSubscribeMessage,
+    ChannelCheer,
+    ChannelBan
 ]

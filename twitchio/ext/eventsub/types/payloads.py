@@ -11,6 +11,7 @@ __all__ = (
     "WebsocketMessage",
     "WebsocketMessagePayload",
     "WebhookMessage",
+    "HTTPSubscribeResponse"
 )
 
 
@@ -30,6 +31,12 @@ class Subscription(TypedDict):
     created_at: str
     transport: SubscriptionTransport
 
+
+class HTTPSubscribeResponse(TypedDict):
+    data: list[Subscription]
+    total: int
+    total_cost: int
+    max_total_cost: int
 
 class WebsocketMessageMetadata(TypedDict):
     message_id: str
@@ -208,7 +215,7 @@ class ChannelBan(TypedDict):  # channel.ban, version 1, channel:moderate
     moderator_user_name: str
     reason: str
     banned_at: str
-    ends_at: str
+    ends_at: str | None
     is_permanent: bool
 
 
