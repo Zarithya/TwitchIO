@@ -23,12 +23,13 @@ SOFTWARE.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Generic, Awaitable, Type
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Any, Awaitable, Generic, Type
 
 import aiohttp
+from typing_extensions import Self
+
 from twitchio import Client as _BaseClient, PartialUser
-from twitchio.http import Route, TokenHandlerT, HTTPHandler
+from twitchio.http import HTTPHandler, Route, TokenHandlerT
 
 if TYPE_CHECKING:
     from . import models
@@ -162,6 +163,39 @@ class Client(Generic[TokenHandlerT]):
     async def event_channel_subscribe_message(self, event: NotificationEvent[models.ChannelSubscribeMessage]) -> None:
         ...
 
+    async def event_channel_cheer(self, event: NotificationEvent[models.ChannelCheer]) -> None:
+        ...
+
+    async def event_channel_ban(self, event: NotificationEvent[models.ChannelBan]) -> None:
+        ...
+
+    async def event_channel_unban(self, event: NotificationEvent[models.ChannelUnban]) -> None:
+        ...
+
+    async def event_channel_goal_begin(self, event: NotificationEvent[models.ChannelGoalBegin]) -> None:
+        ...
+
+    async def event_channel_goal_progress(self, event: NotificationEvent[models.ChannelGoalProgress]) -> None:
+        ...
+
+    async def event_channel_goal_end(self, event: NotificationEvent[models.ChannelGoalEnd]) -> None:
+        ...
+
+    async def event_channel_raid(self, event: NotificationEvent[models.ChannelRaid]) -> None:
+        ...
+
+    async def event_channel_moderator_add(self, event: NotificationEvent[models.ChannelModeratorAdd]) -> None:
+        ...
+
+    async def event_channel_moderator_remove(self, event: NotificationEvent[models.ChannelModeratorRemove]) -> None:
+        ...
+
+    async def event_stream_online(self, event: NotificationEvent[models.StreamOnline]) -> None:
+        ...
+
+    async def event_stream_offline(self, event: NotificationEvent[models.StreamOffline]) -> None:
+        ...
+
     # subscription stuff
 
     def _subscribe_with_broadcaster(
@@ -173,7 +207,7 @@ class Client(Generic[TokenHandlerT]):
         return self._subscribe_with_broadcaster(models.ChannelBan, broadcaster)
 
     def subscribe_channel_unbans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.unban, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelUnban, broadcaster)
 
     def subscribe_channel_subscriptions(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelSubscribe, broadcaster)
@@ -197,31 +231,31 @@ class Client(Generic[TokenHandlerT]):
         return self._subscribe_with_broadcaster(models.ChannelFollow, broadcaster)
 
     def subscribe_channel_moderators_add(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.channel_moderator_add, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelModeratorAdd, broadcaster)
 
     def subscribe_channel_moderators_remove(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.channel_moderator_remove, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelModeratorRemove, broadcaster)
 
     def subscribe_channel_goal_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.channel_goal_begin, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelGoalBegin, broadcaster)
 
     def subscribe_channel_goal_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.channel_goal_progress, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelGoalProgress, broadcaster)
 
     def subscribe_channel_goal_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.channel_goal_end, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelGoalEnd, broadcaster)
 
     def subscribe_channel_hypetrain_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.hypetrain_begin, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelHypeTrainBegin, broadcaster)
 
     def subscribe_channel_hypetrain_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.hypetrain_progress, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelHypeTrainProgress, broadcaster)
 
     def subscribe_channel_hypetrain_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.hypetrain_end, broadcaster)
+        return self._subscribe_with_broadcaster(models.ChannelHypeTrainEnd, broadcaster)
 
     def subscribe_channel_stream_start(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.stream_start, broadcaster)
+        return self._subscribe_with_broadcaster(models.StreamOnline, broadcaster)
 
     def subscribe_channel_stream_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.SubscriptionTypes.stream_end, broadcaster)
+        return self._subscribe_with_broadcaster(models.StreamOffline, broadcaster)

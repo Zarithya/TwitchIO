@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Protocol, Type, Union, Literal
+from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union
 
 from twitchio import PartialUser
 from twitchio.utils import parse_timestamp
@@ -15,21 +15,24 @@ if TYPE_CHECKING:
         ChannelFollow as ChannelFollowPayload,
         ChannelGoalBeginProgress as ChannelGoalBeginProgressPayload,
         ChannelGoalEnd as ChannelGoalEndPayload,
+        ChannelHypeTrain_Contributor as ChannelHypeTrain_ContributorPayload,
+        ChannelHypeTrainBeginProgress as ChannelHypeTrainBeginProgressPayload,
+        ChannelHypeTrainEnd as ChannelHypeTrainEndPayload,
         ChannelModeratorAdd as ChannelModeratorAddPayload,
         ChannelModeratorRemove as ChannelModeratorRemovePayload,
-        ChannelUnban as ChannelUnbanPayload,
-        ChannelUpdate as ChannelUpdatePayload,
+        ChannelRaid as ChannelRaidPayload,
         ChannelSubscribe as ChannelSubscribePayload,
         ChannelSubscriptionEnd as ChannelSubscribeEndPayload,
         ChannelSubscriptionGift as ChannelSubscriptionGiftPayload,
         ChannelSubscriptionMessage as ChannelSubscriptionMessagePayload,
-        ChannelRaid as ChannelRaidPayload,
-        StreamOnline as StreamOnlinePayload,
+        ChannelUnban as ChannelUnbanPayload,
+        ChannelUpdate as ChannelUpdatePayload,
+        Images as ImagePayload,
         StreamOffline as StreamOfflinePayload,
+        StreamOnline as StreamOnlinePayload,
         UserAuthorizationGrant as UserAuthorizationGrantPayload,
         UserAuthorizationRevoke as UserAuthorizationRevokePayload,
         UserUpdate as UserUpdatePayload,
-        Images as ImagePayload,
     )
 
 __all__ = (
@@ -376,20 +379,20 @@ class ChannelGoalBegin(EventData):
 
     Attributes
     -----------
-    broadcaster: :class:`twitchio.PartialUser`
+    broadcaster: :class:`~twitchio.PartialUser`
         The broadcaster that started the goal
-    id : :class:`str`
-        The ID of the goal event
+    id: :class:`str`
+        The ID of the goal event.
     type: :class:`str`
-        The goal type
+        The goal type.
     description: :class:`str`
-        The goal description
+        The goal description.
     current_amount: :class:`int`
-        The goal current amount
+        The goal current amount.
     target_amount: :class:`int`
-        The goal target amount
+        The goal target amount.
     started_at: :class:`datetime.datetime`
-        The datetime the goal was started
+        The datetime the goal was started.
     """
 
     __slots__ = ("user", "id", "type", "description", "current_amount", "target_amount", "started_at")
@@ -414,20 +417,20 @@ class ChannelGoalProgress(EventData):
 
     Attributes
     -----------
-    broadcaster: :class:`twitchio.PartialUser`
+    broadcaster: :class:`~twitchio.PartialUser`
         The broadcaster that started the goal
-    id : :class:`str`
-        The ID of the goal event
+    id: :class:`str`
+        The ID of the goal event.
     type: :class:`str`
-        The goal type
+        The goal type.
     description: :class:`str`
-        The goal description
+        The goal description.
     current_amount: :class:`int`
-        The goal current amount
+        The goal current amount.
     target_amount: :class:`int`
-        The goal target amount
+        The goal target amount.
     started_at: :class:`datetime.datetime`
-        The datetime the goal was started
+        The datetime the goal was started.
     """
 
     __slots__ = ("user", "id", "type", "description", "current_amount", "target_amount", "started_at")
@@ -452,20 +455,20 @@ class ChannelGoalEnd(EventData):
 
     Attributes
     -----------
-    broadcaster: :class:`twitchio.PartialUser`
+    broadcaster: :class:`~twitchio.PartialUser`
         The broadcaster that started the goal
-    id : :class:`str`
-        The ID of the goal event
+    id: :class:`str`
+        The ID of the goal event.
     type: :class:`str`
-        The goal type
+        The goal type.
     description: :class:`str`
-        The goal description
+        The goal description.
     current_amount: :class:`int`
-        The goal current amount
+        The goal current amount.
     target_amount: :class:`int`
-        The goal target amount
+        The goal target amount.
     started_at: :class:`datetime.datetime`
-        The datetime the goal was started
+        The datetime the goal was started.
     """
 
     __slots__ = (
@@ -502,12 +505,12 @@ class ChannelUnban(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
-        The user that was unbanned
-    broadcaster: :class:`twitchio.PartialUser`
-        The channel the unban occurred in
+    user: :class:`~twitchio.PartialUser`
+        The user that was unbanned.
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the unban occurred in.
     moderator: :class`twitchio.PartialUser`
-        The moderator that performed the unban
+        The moderator that performed the unban.
     """
 
     __slots__ = ("user", "broadcaster", "moderator")
@@ -528,12 +531,12 @@ class ChannelRaid(EventData):
 
     Attributes
     -----------
-    raider: :class:`twitchio.PartialUser`
-        The person initiating the raid
-    reciever: :class:`twitchio.PartialUser`
-        The person recieving the raid
+    raider: :class:`~twitchio.PartialUser`
+        The person initiating the raid.
+    reciever: :class:`~twitchio.PartialUser`
+        The person recieving the raid.
     viewer_count: :class:`int`
-        The amount of people raiding
+        The amount of people raiding.
     """
 
     __slots__ = ("raider", "reciever", "viewer_count")
@@ -544,7 +547,7 @@ class ChannelRaid(EventData):
 
     def __init__(self, transport: BaseTransport, payload: ChannelRaidPayload) -> None:
         self.raider: PartialUser = _transform_user(transport, "from_broadcaster_user_", payload)
-        self.reciever = _transform_user(transport, "to_broadcaster_user_", payload)
+        self.reciever: PartialUser = _transform_user(transport, "to_broadcaster_user_", payload)
         self.viewer_count: int = payload["viewers"]
 
 
@@ -554,10 +557,10 @@ class ChannelModeratorAdd(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
-        The user being added as a moderator
-    broadcaster: :class:`twitchio.PartialUser`
-        The channel that is having a moderator added
+    user: :class:`~twitchio.PartialUser`
+        The user being added as a moderator.
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel that is having a moderator added.
     """
 
     __slots__ = ("broadcaster", "user")
@@ -577,10 +580,10 @@ class ChannelModeratorRemove(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
-        The user being removed from moderator status
-    broadcaster: :class:`twitchio.PartialUser`
-        The channel that is having a moderator removed
+    user: :class:`~twitchio.PartialUser`
+        The user being removed from moderator status.
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel that is having a moderator removed.
     """
 
     __slots__ = ("broadcaster", "user")
@@ -600,14 +603,14 @@ class StreamOnline(EventData):
 
     Attributes
     -----------
-    broadcaster: :class:`twitchio.PartialUser`
-        The channel that went live
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel that went live.
     id: :class:`str`
-        Some sort of ID for the stream
+        Some sort of ID for the stream.
     type: :class:`str`
         One of "live", "playlist", "watch_party", "premier", or "rerun". The type of live event.
     started_at: :class:`datetime.datetime`
-        The time when the stream started
+        The time when the stream started.
     """
 
     __slots__ = ("broadcaster", "id", "type", "started_at")
@@ -617,7 +620,7 @@ class StreamOnline(EventData):
     _event = "stream.online"
 
     def __init__(self, transport: BaseTransport, payload: StreamOnlinePayload) -> None:
-        self.broadcaster = _transform_user(transport, "broadcaster_user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
         self.id: str = payload["id"]
         self.type: Literal["live", "playlist", "watch_party", "premier", "rerun"] = payload["type"]
         self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
@@ -629,18 +632,18 @@ class StreamOffline(EventData):
 
     Attributes
     -----------
-    broadcaster: :class:`twitchio.PartialUser`
-        The channel that went live
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel that went live.
     """
 
-    __slots__ = "broadcaster"
+    __slots__ = ("broadcaster",)
     _dispatches_as = "stream_offline"
     _required_scopes = None
     _version = 1
     _event = "stream.offline"
 
     def __init__(self, transport: BaseTransport, payload: StreamOfflinePayload) -> None:
-        self.broadcaster = _transform_user(transport, "broadcaster_user_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
 
 
 class UserAuthorizationGrant(EventData):
@@ -652,10 +655,10 @@ class UserAuthorizationGrant(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
-        The user that has granted authorization for your app
+    user: :class:`~twitchio.PartialUser`
+        The user that has granted authorization for your app.
     client_id: :class:`str`
-        The client id of the app that had its authorization granted
+        The client id of the app that had its authorization granted.
     """
 
     __slots__ = ("client_id", "user")
@@ -665,7 +668,7 @@ class UserAuthorizationGrant(EventData):
     _event = "user.authorization.grant"
 
     def __init__(self, transport: BaseTransport, payload: UserAuthorizationGrantPayload) -> None:
-        self.user = _transform_user(transport, "user_", payload)
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
         self.client_id: str = payload["client_id"]
 
 
@@ -678,10 +681,10 @@ class UserAuthorizationRevoke(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
-        The user that has revoked authorization for your app
+    user: :class:`~twitchio.PartialUser`
+        The user that has revoked authorization for your app.
     client_id: :class:`str`
-        The client id of the app that had its authorization revoked
+        The client id of the app that had its authorization revoked.
     """
 
     __slots__ = ("client_id", "user")
@@ -691,7 +694,7 @@ class UserAuthorizationRevoke(EventData):
     _event = "user.authorization.revoke"
 
     def __init__(self, transport: BaseTransport, payload: UserAuthorizationRevokePayload) -> None:
-        self.user = _transform_user(transport, "user_", payload)
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
         self.client_id: str = payload["client_id"]
 
 
@@ -701,7 +704,7 @@ class UserUpdate(EventData):
 
     Attributes
     -----------
-    user: :class:`twitchio.PartialUser`
+    user: :class:`~twitchio.PartialUser`
         The user that was updated
     email: Optional[:class:`str`]
         The users email, if you have permission to read this information
@@ -716,10 +719,173 @@ class UserUpdate(EventData):
     _event = "user.update"
 
     def __init__(self, transport: BaseTransport, payload: UserUpdatePayload) -> None:
-        self.user = _transform_user(transport, "user_", payload)
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
         self.email: str | None = payload.get("email")
         self.description: str = payload["description"]
         self.email_verified: bool = payload["email_verified"]
+
+
+class HypeTrainContributor:
+    """
+    A Contributor to a Hype Train
+
+    Attributes
+    -----------
+    user: :class:`~twitchio.PartialUser`
+        The user.
+    type: :class:`str`
+        One of "bits, "subscription" or "other". The way they contributed to the hype train.
+    total: :class:`int`
+        How many points they've contributed to the Hype Train.
+    """
+
+    __slots__ = ("user", "type", "total")
+
+    def __init__(self, transport: BaseTransport, payload: ChannelHypeTrain_ContributorPayload) -> None:
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.type: Literal["bits", "subscription", "other"] = payload["type"]  # one of bits, subscription
+        self.total: int = payload["total"]
+
+
+class ChannelHypeTrainBegin(EventData):
+    """
+    A Hype Train Begin event
+
+    Attributes
+    -----------
+
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the Hype Train occurred in.
+    total_points: :class:`int`
+        The total amounts of points in the Hype Train.
+    progress: :class:`int`
+        The progress of the Hype Train towards the next level.
+    goal: :class:`int`
+        The goal to reach the next level.
+    started: :class:`datetime.datetime`
+        When the Hype Train started.
+    expires: :class:`datetime.datetime`
+        When the Hype Train ends.
+    top_contributions: List[:class:`HypeTrainContributor`]
+        The top contributions of the Hype Train.
+    last_contribution: :class:`HypeTrainContributor`
+        The last contributor to the Hype Train.
+    level: :class:`int`
+        The current level of the Hype Train.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "total_points",
+        "progress",
+        "goal",
+        "top_contributions",
+        "last_contribution",
+        "started",
+        "expires",
+        "level",
+    )
+    _dispatches_as = "channel_hypetrain_begin"
+    _required_scopes = ("channel:read:hype_train",)
+    _version = 1
+    _event = "channel.hype_train.begin"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelHypeTrainBeginProgressPayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
+        self.total_points: int = payload["total"]
+        self.progress: int = payload["progress"]
+        self.goal: int = payload["goal"]
+        self.started: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.expires: datetime.datetime = parse_timestamp(payload["expires_at"])
+        self.top_contributions: list[HypeTrainContributor] = [
+            HypeTrainContributor(transport, d) for d in payload["top_contributions"]
+        ]
+        self.last_contribution: HypeTrainContributor = HypeTrainContributor(transport, payload["last_contribution"])
+        self.level: int = payload["level"]
+
+
+class ChannelHypeTrainProgress(EventData):
+    """
+    A Hype Train Progress event
+
+    Attributes
+    -----------
+
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the Hype Train occurred in.
+    total_points: :class:`int`
+        The total amounts of points in the Hype Train.
+    progress: :class:`int`
+        The progress of the Hype Train towards the next level.
+    goal: :class:`int`
+        The goal to reach the next level.
+    started: :class:`datetime.datetime`
+        When the Hype Train started.
+    expires: :class:`datetime.datetime`
+        When the Hype Train ends.
+    top_contributions: List[:class:`HypeTrainContributor`]
+        The top contributions of the Hype Train.
+    last_contribution: :class:`HypeTrainContributor`
+        The last contributor to the Hype Train.
+    level: :class:`int`
+        The current level of the Hype Train.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "total_points",
+        "progress",
+        "goal",
+        "top_contributions",
+        "last_contribution",
+        "started",
+        "expires",
+        "level",
+    )
+    _dispatches_as = "channel_hypetrain_progress"
+    _required_scopes = ("channel:read:hype_train",)
+    _version = 1
+    _event = "channel.hype_train.progress"
+
+    __init__ = ChannelHypeTrainBegin.__init__
+
+
+class ChannelHypeTrainEnd(EventData):
+    """
+    A Hype Train End event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the Hype Train occurred in.
+    total_points: :class:`int`
+        The total amounts of points in the Hype Train.
+    level: :class:`int`
+        The level the hype train reached.
+    started: :class:`datetime.datetime`
+        When the Hype Train started.
+    top_contributions: List[:class:`HypeTrainContributor`]
+        The top contributions of the Hype Train.
+    cooldown_ends_at: :class:`datetime.datetime`
+        When another Hype Train can begin.
+    """
+
+    __slots__ = ("broadcaster", "level", "total_points", "top_contributions", "started", "ended", "cooldown_ends_at")
+    _dispatches_as = "channel_hypetrain_end"
+    _required_scopes = ("channel:read:hype_train",)
+    _version = 1
+    _event = "channel.hype_train.end"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelHypeTrainEndPayload) -> None:
+        self.broadcaster = _transform_user(transport, "broadcaster_user_", payload)
+        self.total_points: int = payload["total"]
+        self.level: int = payload["level"]
+        self.started: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.ended: datetime.datetime = parse_timestamp(payload["ended_at"])
+        self.cooldown_ends_at: datetime.datetime = parse_timestamp(payload["cooldown_ends_at"])
+        self.top_contributions: list[HypeTrainContributor] = [
+            HypeTrainContributor(transport, d) for d in payload["top_contributions"]
+        ]
 
 
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
@@ -744,4 +910,7 @@ AllModels = Union[
     UserAuthorizationGrant,
     UserAuthorizationRevoke,
     UserUpdate,
+    ChannelHypeTrainBegin,
+    ChannelHypeTrainProgress,
+    ChannelHypeTrainEnd,
 ]

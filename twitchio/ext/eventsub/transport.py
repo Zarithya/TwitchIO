@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
-from typing import TYPE_CHECKING, Any, Protocol, Type, cast, Awaitable
+from typing import TYPE_CHECKING, Any, Awaitable, Protocol, Type, cast
 
 import aiohttp
 from aiohttp import web
@@ -28,7 +28,7 @@ from .events import (
 if TYPE_CHECKING:
     from .client import Client as _Client
     from .models import AllModels
-    from .types.payloads import Condition, WebsocketMessage, HTTPSubscribeResponse
+    from .types.payloads import Condition, HTTPSubscribeResponse, WebsocketMessage
 
 __all__ = ("BaseTransport", "WebhookTransport", "WebsocketTransport")
 logger = logging.getLogger("twitchio.ext.eventsub.transport")
