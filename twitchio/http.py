@@ -184,10 +184,17 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         self.buckets = HTTPRateLimiter()
         self.client: Client | None = client
+    
+    @property
+    def _prepared(self) -> bool:
+        return self.loop is not None and self._session is not None and not self._session.closed
 
     async def prepare(self):
         if not self.loop:
-            self.loop = asyncio.get_running_loop()
+            try:
+                self.loop = asyncio.get_running_loop()
+            except RuntimeError as e:
+                raise RuntimeError("asyncio loop is not running, have you started the client?") from e
 
         if self._session:
             await self._session.close()
@@ -251,7 +258,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                     else:
                         data = _data
 
-                    if response.status not in (400, 401):
+                    if not (400 <= response.status <= 500):
                         bucket.update(response)
 
                     if 200 <= response.status <= 299:

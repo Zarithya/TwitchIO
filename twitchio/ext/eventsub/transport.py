@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
-from typing import TYPE_CHECKING, Any, Protocol, Type, cast
+from typing import TYPE_CHECKING, Any, Protocol, Type, cast, Awaitable
 
 import aiohttp
 from aiohttp import web
@@ -15,20 +15,20 @@ from twitchio.http import Route
 from twitchio.utils import json_loader
 
 from . import events
+from .events import (
+    BaseEvent,
+    ChallengeEvent,
+    KeepaliveEvent,
+    NotificationEvent,
+    ReconnectEvent,
+    RevocationEvent,
+    WebhookMeta as _WebhookMeta,
+)
 
 if TYPE_CHECKING:
     from .client import Client as _Client
-    from .events import (
-        BaseEvent,
-        ChallengeEvent,
-        KeepaliveEvent,
-        NotificationEvent,
-        ReconnectEvent,
-        RevocationEvent,
-        WebhookMeta as _WebhookMeta,
-    )
     from .models import AllModels
-    from .types.payloads import Condition, WebsocketMessage
+    from .types.payloads import Condition, WebsocketMessage, HTTPSubscribeResponse
 
 __all__ = ("BaseTransport", "WebhookTransport", "WebsocketTransport")
 logger = logging.getLogger("twitchio.ext.eventsub.transport")
@@ -70,13 +70,13 @@ class BaseTransport(Protocol):
     async def transform_event(self, event: Any) -> BaseEvent:
         ...
     
-    async def _http(self, route: Route) -> Any:
-        raise NotImplementedError
+    def _http(self, route: Route) -> Awaitable[Any]:
+        return self.client._request(route)
 
-    async def create_subscription(self, topic: AllModels, condition: Condition, target: PartialUser | None) -> Any:
+    async def create_subscription(self, topic: Type[AllModels], condition: Condition, target: PartialUser | None) -> HTTPSubscribeResponse:
         ...
 
-    async def delete_subscription(self, subscription_id: str) -> Any:
+    async def delete_subscription(self, subscription_id: str) -> bool:
         ...
 
 
@@ -187,7 +187,7 @@ class WebhookTransport(BaseTransport):
             logger.warning(f"Recieved a message with an invalid signature, discarding.")
             return web.Response(status=400)
 
-    async def create_subscription(self, topic: AllModels, condition: Condition, _) -> Any:
+    async def create_subscription(self, topic: AllModels, condition: Condition, _) -> HTTPSubscribeResponse:
         payload = {
             "type": topic._event,
             "version": str(topic._version),
@@ -197,9 +197,10 @@ class WebhookTransport(BaseTransport):
         route = Route("POST", "eventsub/subscriptions", body=payload, scope=topic._required_scopes and list(topic._required_scopes))
         return await self._http(route)
     
-    async def delete_subscription(self, subscription_id: str) -> Any:
+    async def delete_subscription(self, subscription_id: str) -> bool:
         route = Route("DELETE", "eventsub/subscriptions", body=None, parameters=[("id", subscription_id)])
-        return await self._http(route)
+        await self._http(route)
+        return True
 
 
 class WebsocketSubscription:
@@ -215,16 +216,17 @@ class WebsocketSubscription:
 class WebsocketShard:
     URL = "wss://eventsub-beta.wss.twitch.tv/ws"
 
-    def __init__(self, transport: WebsocketTransport, connect_kwargs: dict[Any, Any]) -> None:
+    def __init__(self, transport: WebsocketTransport, user_id: int, connect_kwargs: dict[Any, Any] | None) -> None:
         self.transport: WebsocketTransport = transport
         self._subscriptions: list[WebsocketSubscription] = []
         self.socket: aiohttp.ClientWebSocketResponse | None = None
         self.available_cost = 100
+        self._user_id: int = user_id
         self.task: asyncio.Task | None = None
         self.session_id: str | None = None
         self._timeout: int | None = None
 
-        self._connect_kwargs = connect_kwargs
+        self._connect_kwargs = connect_kwargs or {}
 
     async def connect(self, reconnect_url: str | None = None) -> None:
         if not self._subscriptions:
@@ -243,7 +245,7 @@ class WebsocketShard:
         self.session_id = welcome["payload"]["session"]["id"]
         self._timeout = welcome["payload"]["session"]["keepalive_timeout_seconds"]
 
-        logger.debug("Created websocket connection with session ID: %s and timeout %s", self.session_id, self._timeout)
+        logger.info("Created websocket connection with session ID: %s and timeout %s", self.session_id, self._timeout)
 
         self.task = asyncio.create_task(self.pump(), name=f"Pump-EventSub-{self.session_id}")
 
@@ -292,7 +294,7 @@ class WebsocketShard:
 
         logger.debug("Pump terminated for session %s with close code %s", self.session_id, self.socket and self.socket.close_code)
     
-    async def _subscribe(self, subscription: WebsocketSubscription) -> None:
+    async def _subscribe(self, subscription: WebsocketSubscription) -> HTTPSubscribeResponse:
         payload = {
             "type": subscription.event._event,
             "version": str(subscription.event._version),
@@ -306,6 +308,7 @@ class WebsocketShard:
         subscription.subscription_id = data["id"]
 
         self.available_cost = resp["total_cost"] - resp["max_total_cost"]
+        return resp
     
     async def _unsubscribe(self, subscription: WebsocketSubscription) -> None:
         route = Route("DELETE", "eventsub/subscriptions", body=None, parameters=[("id", subscription.subscription_id)], target=subscription.target)
@@ -315,7 +318,7 @@ class WebsocketShard:
         if subscription.cost is not None:
             self.available_cost += subscription.cost
     
-    async def add_subscription(self, subscription: WebsocketSubscription) -> None:
+    async def add_subscription(self, subscription: WebsocketSubscription) -> HTTPSubscribeResponse:
         if self.available_cost < 1:
             raise RuntimeError("No remaining slots in this shard")
         
@@ -324,7 +327,7 @@ class WebsocketShard:
         if not self.socket or self.socket.closed:
             await self.connect()
         
-        await self._subscribe(subscription)
+        return await self._subscribe(subscription)
 
 class WebsocketTransport(BaseTransport):
     _message_types = {
@@ -334,7 +337,17 @@ class WebsocketTransport(BaseTransport):
         "session_keepalive": KeepaliveEvent
     }
 
-    def __init__(self, **connect_kwargs) -> None:
+    def __init__(self, *, connect_kwargs: dict[str, Any] | None = None) -> None:
+        """
+        A transport for communicating with eventsub through websockets.
+        Pass this to EventSubClient.
+
+        Parameters
+        -----------
+        connect_kwargs: dict[:class:`str`, Any] | ``None`` = ``None``
+            arguments to pass when connecting to the websocket with aiohttp.
+            These arguments are passed directly to :func:`aiohttp.ClientSession.ws_connect`
+        """
         self.pool: list[WebsocketShard] = []
         self._connect_kwargs = connect_kwargs
     
@@ -345,23 +358,47 @@ class WebsocketTransport(BaseTransport):
         for shard in self.pool:
             await shard.disconnect()
     
-    async def create_subscription(self, topic: AllModels, condition: Condition, target: PartialUser | None) -> Any:
+    async def create_subscription(self, topic: AllModels, condition: Condition, target: PartialUser) -> HTTPSubscribeResponse:
+        """
+        Creates a subscription for an event.
+
+        Parameters
+        -----------
+        topic: AnyModel
+            Pass any model from the :ref:`models<eventsub_models>` to subscribe to that event
+        condition: :class:`Condition`
+            A dict with any of the Condition keys/values
+        target: :class`PartialUser`
+            The user to get a token for from the :ref:`token handler<tokens>`
+        
+        Raises
+        -------
+            :class:`ValueError`: No target was passed. Websocket subscriptions require a target user, as a token must be provided.
+
+        Returns
+        --------
+            dict[:class:`str`, Any]
+        """
         if not target:
-            raise RuntimeError("Websocket subscriptions require a target user") # TODO proper exception type
+            raise ValueError("Websocket subscriptions require a target user")
         
         subscription = WebsocketSubscription(topic, condition, target)
+        shard = None
         
-        if not self.pool or sum(shard.available_cost for shard in self.pool) < 1:
-            shard = WebsocketShard(self, self._connect_kwargs)
+        if not self.pool or sum(shard.available_cost for shard in self.pool if shard._user_id == target.id) < 1:
+            shard = WebsocketShard(self, target.id, connect_kwargs=self._connect_kwargs)
             self.pool.append(shard)
         
         else:
             for s in self.pool:
-                if s.available_cost > 1:
+                if s.available_cost > 1 and s._user_id == target.id:
                     shard = s
                     break
+        
+        if shard is None:
+            raise RuntimeError("Unable to acquire a shard to assign subscription to. This is an internal error and should be reported")
             
-        await shard.add_subscription(subscription) # type: ignore
+        return await shard.add_subscription(subscription)
     
     async def delete_subscription(self, subscription_id: str) -> bool:
         for s in self.pool:
