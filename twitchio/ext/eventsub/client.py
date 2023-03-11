@@ -85,7 +85,7 @@ class Client(Generic[TokenHandlerT]):
 
         self._transport._prepare(self)
         # dear anyone who modifies __init__: does from_client need updating to reflect the changes as well?
-    
+
     @classmethod
     def from_client(cls, transport: BaseTransport, client: _BaseClient) -> Self:
         """
@@ -109,16 +109,16 @@ class Client(Generic[TokenHandlerT]):
         self._transport._prepare(self)
 
         return self
-    
+
     async def start(self) -> None:
         if not self._http._prepared:
             await self._http.prepare()
-        
+
         await self._transport.start()
 
     async def stop(self) -> None:
         await self._transport.stop()
-        
+
     async def _request(self, route: Route) -> Any:
         return await self._http.request(route)
 
@@ -152,19 +152,21 @@ class Client(Generic[TokenHandlerT]):
 
     async def event_channel_subscribe(self, event: NotificationEvent[models.ChannelSubscribe]) -> None:
         ...
-    
+
     async def event_channel_subscribe_end(self, event: NotificationEvent[models.ChannelSubscribeEnd]) -> None:
         ...
-    
+
     async def event_channel_subscribe_gift(self, event: NotificationEvent[models.ChannelSubscribeGift]) -> None:
         ...
-    
+
     async def event_channel_subscribe_message(self, event: NotificationEvent[models.ChannelSubscribeMessage]) -> None:
         ...
 
     # subscription stuff
 
-    def _subscribe_with_broadcaster(self, topic: Type[models.AllModels], broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def _subscribe_with_broadcaster(
+        self, topic: Type[models.AllModels], broadcaster: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
         return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id)}, broadcaster)
 
     def subscribe_channel_bans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:

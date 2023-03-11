@@ -11,7 +11,7 @@ __all__ = (
     "WebsocketMessage",
     "WebsocketMessagePayload",
     "WebhookMessage",
-    "HTTPSubscribeResponse"
+    "HTTPSubscribeResponse",
 )
 
 
@@ -37,6 +37,7 @@ class HTTPSubscribeResponse(TypedDict):
     total: int
     total_cost: int
     max_total_cost: int
+
 
 class WebsocketMessageMetadata(TypedDict):
     message_id: str
@@ -206,6 +207,7 @@ class ChannelRaid(TypedDict):  # channel.raid, version 1, NOAUTH
     to_broadcaster_user_id: str
     to_broadcaster_user_name: str
     to_broadcaster_user_login: str
+    viewers: int
 
 
 class ChannelBan(TypedDict):  # channel.ban, version 1, channel:moderate

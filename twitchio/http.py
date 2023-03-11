@@ -184,7 +184,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         self.buckets = HTTPRateLimiter()
         self.client: Client | None = client
-    
+
     @property
     def _prepared(self) -> bool:
         return self.loop is not None and self._session is not None and not self._session.closed

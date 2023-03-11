@@ -70,11 +70,13 @@ class BaseTransport(Protocol):
 
     async def transform_event(self, event: Any) -> BaseEvent:
         ...
-    
+
     def _http(self, route: Route) -> Awaitable[Any]:
         return self.client._request(route)
 
-    async def create_subscription(self, topic: Type[AllModels], condition: Condition, target: PartialUser | None) -> HTTPSubscribeResponse:
+    async def create_subscription(
+        self, topic: Type[AllModels], condition: Condition, target: PartialUser | None
+    ) -> HTTPSubscribeResponse:
         ...
 
     async def delete_subscription(self, subscription_id: str) -> bool:
@@ -201,7 +203,7 @@ class WebhookTransport(BaseTransport):
             scope=topic._required_scopes and list(topic._required_scopes),
         )
         return await self._http(route)
-    
+
     async def delete_subscription(self, subscription_id: str) -> bool:
         route = Route("DELETE", "eventsub/subscriptions", body=None, parameters=[("id", subscription_id)])
         await self._http(route)
@@ -302,8 +304,10 @@ class WebsocketShard:
             except Exception as e:
                 logger.error("Error in the pump task for eventsub session %s", self.session_id, exc_info=e)
 
-        logger.debug("Pump terminated for session %s with close code %s", self.session_id, self.socket and self.socket.close_code)
-    
+        logger.debug(
+            "Pump terminated for session %s with close code %s", self.session_id, self.socket and self.socket.close_code
+        )
+
     async def _subscribe(self, subscription: WebsocketSubscription) -> HTTPSubscribeResponse:
         payload = {
             "type": subscription.event._event,
@@ -325,7 +329,7 @@ class WebsocketShard:
 
         self.available_cost = resp["total_cost"] - resp["max_total_cost"]
         return resp
-    
+
     async def _unsubscribe(self, subscription: WebsocketSubscription) -> None:
         route = Route(
             "DELETE",
@@ -339,7 +343,7 @@ class WebsocketShard:
         self._subscriptions.remove(subscription)
         if subscription.cost is not None:
             self.available_cost += subscription.cost
-    
+
     async def add_subscription(self, subscription: WebsocketSubscription) -> HTTPSubscribeResponse:
         if self.available_cost < 1:
             raise RuntimeError("No remaining slots in this shard")
@@ -348,7 +352,7 @@ class WebsocketShard:
 
         if not self.socket or self.socket.closed:
             await self.connect()
-        
+
         return await self._subscribe(subscription)
 
 
@@ -380,8 +384,10 @@ class WebsocketTransport(BaseTransport):
     async def stop(self) -> None:
         for shard in self.pool:
             await shard.disconnect()
-    
-    async def create_subscription(self, topic: AllModels, condition: Condition, target: PartialUser) -> HTTPSubscribeResponse:
+
+    async def create_subscription(
+        self, topic: AllModels, condition: Condition, target: PartialUser
+    ) -> HTTPSubscribeResponse:
         """
         Creates a subscription for an event.
 
@@ -393,7 +399,7 @@ class WebsocketTransport(BaseTransport):
             A dict with any of the Condition keys/values
         target: :class`PartialUser`
             The user to get a token for from the :ref:`token handler<tokens>`
-        
+
         Raises
         -------
             :class:`ValueError`: No target was passed. Websocket subscriptions require a target user, as a token must be provided.
@@ -404,10 +410,10 @@ class WebsocketTransport(BaseTransport):
         """
         if not target:
             raise ValueError("Websocket subscriptions require a target user")
-        
+
         subscription = WebsocketSubscription(topic, condition, target)
         shard = None
-        
+
         if not self.pool or sum(shard.available_cost for shard in self.pool if shard._user_id == target.id) < 1:
             shard = WebsocketShard(self, target.id, connect_kwargs=self._connect_kwargs)
             self.pool.append(shard)
@@ -417,12 +423,14 @@ class WebsocketTransport(BaseTransport):
                 if s.available_cost > 1 and s._user_id == target.id:
                     shard = s
                     break
-        
+
         if shard is None:
-            raise RuntimeError("Unable to acquire a shard to assign subscription to. This is an internal error and should be reported")
-            
+            raise RuntimeError(
+                "Unable to acquire a shard to assign subscription to. This is an internal error and should be reported"
+            )
+
         return await shard.add_subscription(subscription)
-    
+
     async def delete_subscription(self, subscription_id: str) -> bool:
         for s in self.pool:
             for sub in s._subscriptions:
