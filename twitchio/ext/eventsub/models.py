@@ -61,6 +61,7 @@ class ImageLinks:
         self.size_2x: str = payload["url_2x"]
         self.size_4x: str = payload["url_4x"]
 
+
 class EventData(Protocol):
     __slots__ = ()
     _dispatches_as: str
@@ -105,6 +106,7 @@ class ChannelUpdate(EventData):
         self.category_name: str = payload["category_name"]
         self.is_mature: bool = payload["is_mature"]
 
+
 class ChannelFollow(EventData):
     """
     A channel follow. Indicates someone followed the broadcaster.
@@ -118,6 +120,7 @@ class ChannelFollow(EventData):
     followed_at: :class:`datetime.datetime`
         The time the follow happened.
     """
+
     __slots__ = ("user", "broadcaster", "followed_at")
     _dispatches_as = "channel_follow"
     _required_scopes = ("moderator:read:followers", )

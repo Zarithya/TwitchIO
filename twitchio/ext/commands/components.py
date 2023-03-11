@@ -22,7 +22,6 @@ class Component:
         new.__commands = {}
 
         for name, value in cls.__dict__.items():
-
             if isinstance(value, Command):
                 if name.startswith("component_"):
                     raise TypeError('Command callbacks must not start with "component_" or "bot".')

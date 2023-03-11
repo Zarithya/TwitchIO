@@ -294,7 +294,6 @@ class AudioPlayer:
 
         self._playing = True
         while self._playing:
-
             while self._paused:
                 time.sleep(0.1)
 

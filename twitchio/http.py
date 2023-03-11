@@ -1278,3 +1278,11 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 target=target,
             )
         )
+
+    async def post_shoutout(self, target: PartialUser, broadcaster_id: str, moderator_id: str, to_broadcaster_id: str):
+        params: ParameterType = [
+            ("from_broadcaster_id", broadcaster_id),
+            ("moderator_id", moderator_id),
+            ("to_broadcaster_id", to_broadcaster_id),
+        ]
+        return self.request(Route("POST", "chat/shoutouts", None, parameters=params, target=target))

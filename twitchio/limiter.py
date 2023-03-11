@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
 
 class IRCRateLimiter:
-
     buckets = {
         "verified": {"messages": 100, "joins": 2000},
         "moderator": {"messages": 100, "joins": 20},

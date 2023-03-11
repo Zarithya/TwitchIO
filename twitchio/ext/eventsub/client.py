@@ -115,7 +115,7 @@ class Client(Generic[TokenHandlerT]):
             await self._http.prepare()
         
         await self._transport.start()
-    
+
     async def stop(self) -> None:
         await self._transport.stop()
         
@@ -126,13 +126,13 @@ class Client(Generic[TokenHandlerT]):
         if self._core_client:
             # TODO: client doesnt have dispatching mechanisms
             ...
-        
+
         attr = getattr(self, f"event_{name}", None)
         if not attr:
             return
-        
-        await attr(event) # TODO: capture errors and have self-contained error handler
-    
+
+        await attr(event)  # TODO: capture errors and have self-contained error handler
+
     # subclassable events
 
     async def event_challenge(self, event: ChallengeEvent) -> None:
