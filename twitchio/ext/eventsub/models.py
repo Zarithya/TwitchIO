@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union
+from enum import Enum
 
 from twitchio import PartialUser
 from twitchio.utils import parse_timestamp
@@ -27,6 +28,18 @@ if TYPE_CHECKING:
         ChannelSubscriptionMessage as ChannelSubscriptionMessagePayload,
         ChannelUnban as ChannelUnbanPayload,
         ChannelUpdate as ChannelUpdatePayload,
+        ChannelPollBegin as ChannelPollBeginPayload,
+        ChannelPollBegin_Choice as ChannelPollBegin_ChoicePayload,
+        ChannelPollEnd as ChannelPollEndPayload,
+        ChannelPredictionBegin as ChannelPredictionBeginPayload,
+        ChannelPredictionBegin_outcomes as ChannelPredictionBegin_outcomesPayload,
+        ChannelPredictionEnd as ChannelPredictionEndPayload,
+        ChannelPredictionProgressLock as ChannelPredictionProgressLockPayload,
+        ChannelCustomReward_streamlimits as ChannelCustomReward_streamlimitsPayload,
+        ChannelCustomRewardRedemptionModify as ChannelCustomRewardRedemptionModifyPayload,
+        ChannelCustomReward_global_cooldown as ChannelCustomReward_global_cooldownPayload,
+        ChannelCustomRewardModify as ChannelCustomRewardModifyPayload,
+        ChannelCustomRewardRedemptionModify_Reward as ChannelCustomRewardRedemptionMody_RewardPayload,
         Images as ImagePayload,
         StreamOffline as StreamOfflinePayload,
         StreamOnline as StreamOnlinePayload,
@@ -92,7 +105,7 @@ class ImageLinks:
 class EventData(Protocol):
     __slots__ = ()
     _dispatches_as: str
-    _required_scopes: tuple[str] | None  # any of the scopes can be used, they're not all required
+    _required_scopes: tuple[str, ...] | None  # any of the scopes can be used, they're not all required
     _version: int
     _event: str
 
@@ -888,6 +901,429 @@ class ChannelHypeTrainEnd(EventData):
         ]
 
 
+class PollStatus(Enum):
+    """
+    The status of a poll.
+
+    ACTIVE: Poll is currently in progress.
+    COMPLETED: Poll has reached its `ended_at` time.
+    TERMINATED: Poll has been manually terminated before its `ended_at` time.
+    ARCHIVED: Poll is no longer visible on the channel.
+    MODERATED: Poll is no longer visible to any user on Twitch.
+    INVALID: Something went wrong determining the state.
+    """
+
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    TERMINATED = "terminated"
+    ARCHIVED = "archived"
+    MODERATED = "moderated"
+    INVALID = "invalid"
+
+
+class PollChoice:
+    """
+    A Poll Choice
+
+    Attributes
+    -----------
+    choice_id: :class:`str`
+        The ID of the choice
+    title: :class:`str`
+        The title of the choice
+    channel_points_votes: :class:`int`
+        How many votes were cast using Channel Points
+    votes: :class:`int`
+        The total number of votes
+    """
+
+    __slots__ = "choice_id", "title", "channel_points_votes", "votes"
+
+    def __init__(self, data: ChannelPollBegin_ChoicePayload):
+        self.choice_id: str = data["id"]
+        self.title: str = data["title"]
+        self.channel_points_votes: int = data.get("channel_points_votes", 0)
+        self.votes: int = data.get("votes", 0)
+
+class ChannelPollBegin(EventData):
+    """
+    A Poll Begin event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the poll occured in.
+    poll_id: :class:`str`
+        The ID of the poll.
+    title: :class:`str`
+        The title of the poll.
+    choices: List[:class:`PollChoice`]
+        The choices in the poll.
+    cost_per_vote: :class:`int`
+        How many channel points it takes to cast a vote.
+    started_at: :class:`datetime.datetime`
+        When the poll started.
+    ends_at: :class:`datetime.datetime`
+        When the poll is set to end.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "poll_id",
+        "title",
+        "choices",
+        "bits_voting",
+        "cost_per_vote",
+        "started_at",
+        "ends_at",
+    )
+    _dispatches_as = "channel_poll_begin"
+    _required_scopes = ("channel:read:polls", "channel:manage:polls")
+    _version = 1
+    _event = "channel.poll.begin"
+
+
+    def __init__(self, transport: BaseTransport, payload: ChannelPollBeginPayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
+        self.poll_id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.choices = [PollChoice(c) for c in payload["choices"]]
+        self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"]
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.ends_at: datetime.datetime = parse_timestamp(payload["ends_at"])
+
+class ChannelPollProgress(EventData):
+    """
+    A Poll Progress event. dispatched when a poll received an update to votes
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the poll occured in.
+    poll_id: :class:`str`
+        The ID of the poll.
+    title: :class:`str`
+        The title of the poll.
+    choices: List[:class:`PollChoice`]
+        The choices in the poll.
+    cost_per_vote: :class:`int`
+        How many channel points it takes to cast a vote.
+    started_at: :class:`datetime.datetime`
+        When the poll started.
+    ends_at: :class:`datetime.datetime`
+        When the poll is set to end.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "poll_id",
+        "title",
+        "choices",
+        "bits_voting",
+        "cost_per_vote",
+        "started_at",
+        "ends_at",
+    )
+    _dispatches_as = "channel_poll_progress"
+    _required_scopes = ("channel:read:polls", "channel:manage:polls")
+    _version = 1
+    _event = "channel.poll.progress"
+
+
+    __init__ = ChannelPollBegin.__init__
+
+class ChannelPollEnd(EventData):
+    """
+    A Poll End event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the poll occured in.
+    poll_id: :class:`str`
+        The ID of the poll.
+    title: :class:`str`
+        The title of the poll.
+    choices: List[:class:`PollChoice`]
+        The choices in the poll.
+    cost_per_vote: :class:`int`
+        How many channel points it takes to cast a vote.
+    status: :class:`PollStatus`
+        How the poll ended.
+    started_at: :class:`datetime.datetime`
+        When the poll started.
+    ended_at: :class:`datetime.datetime`
+        When the poll is set to end.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "poll_id",
+        "title",
+        "choices",
+        "bits_voting",
+        "cost_per_vote",
+        "status",
+        "started_at",
+        "ended_at",
+    )
+    _dispatches_as = "channel_poll_end"
+    _required_scopes = ("channel:read:polls", "channel:manage:polls")
+    _version = 1
+    _event = "channel.poll.end"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelPollEndPayload) -> None:
+        self.broadcaster = _transform_user(transport, "broadcaster_user_", payload)
+        self.poll_id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.choices: list[PollChoice] = [PollChoice(c) for c in payload["choices"]]
+        self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"]
+        self.status = PollStatus(payload["status"].lower())
+        self.started_at = parse_timestamp(payload["started_at"])
+        self.ended_at = parse_timestamp(payload["ended_at"])
+
+
+class Predictor:
+    """
+    A Predictor
+
+    Attributes
+    -----------
+    user: :class:`twitchio.PartialUser`
+        The user who predicted an outcome
+    channel_points_used: :class:`int`
+        How many Channel Points the user used to predict this outcome
+    channel_points_won: :class:`int`
+        How many Channel Points was distributed to the user.
+        Will be ``None`` if the Prediction is unresolved, cancelled (refunded), or the user predicted the losing outcome.
+    """
+
+    __slots__ = "user", "channel_points_used", "channel_points_won"
+
+    def __init__(self, transport: BaseTransport, data: dict):
+        self.user: PartialUser = _transform_user(transport, "user_", data)
+        self.channel_points_used: int = data["channel_points_used"]
+        self.channel_points_won: int | None = data["channel_points_won"]
+
+
+class PredictionOutcome:
+    """
+    A Prediction Outcome
+
+    Attributes
+    -----------
+    outcome_id: :class:`str`
+        The ID of the outcome
+    title: :class:`str`
+        The title of the outcome
+    channel_points: :class:`int`
+        The amount of Channel Points that have been bet for this outcome
+    color: :class:`str`
+        The color of the outcome. Can be `blue` or `pink`
+    users: :class:`int`
+        The number of users who predicted the outcome
+    top_predictors: List[:class:`Predictor`]
+        The top predictors of the outcome
+    """
+
+    __slots__ = "outcome_id", "title", "channel_points", "color", "users", "top_predictors"
+
+    def __init__(self, transport: BaseTransport, data: ChannelPredictionBegin_outcomesPayload):
+        self.outcome_id: str = data["id"]
+        self.title: str = data["title"]
+        self.channel_points: int = data.get("channel_points", 0)
+        self.color: str = data["color"]
+        self.users: int = data.get("users", 0)
+        self.top_predictors: list[Predictor] = [Predictor(transport, x) for x in data.get("top_predictors", [])]
+
+    @property
+    def colour(self) -> str:
+        """The colour of the prediction. Alias to color."""
+        return self.color
+
+
+class PredictionStatus(Enum):
+    """
+    The status of a Prediction.
+
+    ACTIVE: Prediction is active and viewers can make predictions.
+    LOCKED: Prediction has been locked and viewers can no longer make predictions.
+    RESOLVED: A winning outcome has been chosen and the Channel Points have been distributed to the users who guessed the correct outcome.
+    CANCELED: Prediction has been canceled and the Channel Points have been refunded to participants.
+    """
+
+    ACTIVE = "active"
+    LOCKED = "locked"
+    RESOLVED = "resolved"
+    CANCELED = "canceled"
+
+
+class ChannelPredictionBegin(EventData):
+    """
+    A Prediction Begin event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the prediction occured in.
+    prediction_id: :class:`str`
+        The ID of the prediction,
+    title: :class:`str`
+        The title of the prediction.
+    outcomes: List[:class:`PredictionOutcome`]
+        The outcomes for the prediction.
+    started_at: :class:`datetime.datetime`
+        When the prediction started.
+    locks_at: :class:`datetime.datetime`
+        When the prediction is set to be locked.
+    """
+    _dispatches_as = "channel_prediction_begin"
+    _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
+    _version = 1
+    _event = "channel.prediction.begin"
+
+    __slots__ = ("broadcaster", "prediction_id", "title", "outcomes", "started_at", "locks_at")
+
+    def __init__(self, transport: BaseTransport, payload: ChannelPredictionBeginPayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
+        self.prediction_id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.outcomes: list[PredictionOutcome] = [PredictionOutcome(transport, x) for x in payload["outcomes"]]
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.locks_at: datetime.datetime = parse_timestamp(payload["locks_at"])
+
+class ChannelPredictionProgress(EventData):
+    """
+    A Prediction Progress event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the prediction occured in.
+    prediction_id: :class:`str`
+        The ID of the prediction,
+    title: :class:`str`
+        The title of the prediction.
+    outcomes: List[:class:`PredictionOutcome`]
+        The outcomes for the prediction.
+    started_at: :class:`datetime.datetime`
+        When the prediction started.
+    locks_at: :class:`datetime.datetime`
+        When the prediction is set to be locked.
+    """
+    __slots__ = ("broadcaster", "prediction_id", "title", "outcomes", "started_at", "locks_at")
+    _dispatches_as = "channel_prediction_progress"
+    _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
+    _version = 1
+    _event = "channel.prediction.progress"
+
+    __init__ = ChannelPredictionBegin.__init__
+
+class ChannelPredictionLock(EventData):
+    """
+    A Prediction Lock event
+
+    Attributes
+    -----------
+    broadcaster: :class:`twitchio.PartialUser`
+        The channel the prediction occured in.
+    prediction_id: :class:`str`
+        The ID of the prediction.
+    title: :class:`str`
+        The title of the prediction.
+    outcomes: List[:class:`PredictionOutcome`]
+        The outcomes for the prediction.
+    started_at: :class:`datetime.datetime`
+        When the prediction started.
+    locked_at: :class:`datetime.datetime`
+        When the prediction was locked.
+    """
+    __slots__ = ("broadcaster", "prediction_id", "title", "outcomes", "started_at", "locked_at")
+    _dispatches_as = "channel_prediction_lock"
+    _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
+    _version = 1
+    _event = "channel.prediction.lock"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelPredictionProgressLockPayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
+        self.prediction_id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.outcomes: list[PredictionOutcome] = [PredictionOutcome(transport, x) for x in payload["outcomes"]]
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.locked_at: datetime.datetime = parse_timestamp(payload["locked_at"])
+
+
+class ChannelPredictionEnd(EventData):
+    """
+    A Prediction Begin/Progress event
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel the prediction occured in
+    prediction_id: :class:`str`
+        The ID of the prediction
+    title: :class:`str`
+        The title of the prediction
+    winning_outcome_id: :class:`str`
+        The ID of the outcome that won
+    outcomes: List[:class:`PredictionOutcome`]
+        The outcomes for the prediction
+    status: :class:`PredictionStatus`
+        How the prediction ended
+    started_at: :class:`datetime.datetime`
+        When the prediction started
+    ended_at: :class:`datetime.datetime`
+        When the prediction ended
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "prediction_id",
+        "title",
+        "winning_outcome_id",
+        "outcomes",
+        "status",
+        "started_at",
+        "ended_at",
+    )
+    _dispatches_as = "channel_prediction_end"
+    _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
+    _version = 1
+    _event = "channel.prediction.end"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelPredictionEndPayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
+        self.prediction_id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.winning_outcome_id: str = payload["winning_outcome_id"]
+        self.outcomes: list[PredictionOutcome] = [PredictionOutcome(transport, x) for x in payload["outcomes"]]
+        self.status: PredictionStatus = PredictionStatus(payload["status"].lower())
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.ended_at: datetime.datetime = parse_timestamp(payload["ended_at"])
+
+
+class ChannelCustomReward_streamlimits:
+    """
+    Indicates what redemption limits are applied to this reward per stream
+    """
+
+    __slots__ = ("enabled", "value")
+
+    def __init__(self, payload: ChannelCustomReward_streamlimitsPayload) -> None:
+        self.enabled: bool = payload["is_enabled"]
+        self.value: int = payload["value"]
+
+
+class ChannelCustomRewardModify(EventData):
+    """
+    A Custom Reward modification event.
+
+    Attributes
+    -----------
+    
+    """
+
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
 AllModels = Union[
     ChannelBan,
@@ -913,4 +1349,11 @@ AllModels = Union[
     ChannelHypeTrainBegin,
     ChannelHypeTrainProgress,
     ChannelHypeTrainEnd,
+    ChannelPollBegin,
+    ChannelPollProgress,
+    ChannelPollEnd,
+    ChannelPredictionBegin,
+    ChannelPredictionProgress,
+    ChannelPredictionLock,
+    ChannelPredictionEnd
 ]

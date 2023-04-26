@@ -189,6 +189,15 @@ class Client(Generic[TokenHandlerT]):
 
     async def event_channel_moderator_remove(self, event: NotificationEvent[models.ChannelModeratorRemove]) -> None:
         ...
+    
+    async def event_channel_poll_start(self, event: NotificationEvent[models.ChannelPollBegin]) -> None:
+        ...
+    
+    async def event_channel_poll_progress(self, event: NotificationEvent[models.ChannelPollProgress]) -> None:
+        ...
+    
+    async def event_channel_poll_end(self, event: NotificationEvent[models.ChannelPollEnd]) -> None:
+        ...
 
     async def event_stream_online(self, event: NotificationEvent[models.StreamOnline]) -> None:
         ...
@@ -259,3 +268,24 @@ class Client(Generic[TokenHandlerT]):
 
     def subscribe_channel_stream_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.StreamOffline, broadcaster)
+
+    def subscribe_channel_poll_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPollBegin, broadcaster)
+
+    def subscribe_channel_poll_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPollProgress, broadcaster)
+
+    def subscribe_channel_poll_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPollEnd, broadcaster)
+
+    def subscribe_channel_prediction_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPredictionBegin, broadcaster)
+
+    def subscribe_channel_prediction_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPredictionProgress, broadcaster)
+
+    def subscribe_channel_prediction_lock(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPredictionLock, broadcaster)
+
+    def subscribe_channel_prediction_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelPredictionEnd, broadcaster)

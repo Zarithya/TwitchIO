@@ -358,8 +358,18 @@ class ChannelPollProgress(TypedDict):  # channel.poll.progress, version 1, chann
     ends_at: str
 
 
-class ChannelPollEnd(ChannelPollProgress):  # channel.poll.end, version 1, channel:read:polls or channel:manage:polls
+class ChannelPollEnd(TypedDict):  # channel.poll.end, version 1, channel:read:polls or channel:manage:polls
+    id: str
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    title: str
+    choices: list[ChannelPollProgress_Choice]
+    bits_voting: ChannelPoll_VotingData
+    channel_points_voting: ChannelPoll_VotingData
+    started_at: str
     status: str
+    ended_at: str
 
 
 class ChannelPredictionBegin_outcomes(TypedDict):
@@ -407,13 +417,15 @@ class ChannelPredictionProgressLock(TypedDict):
     title: str
     outcomes: list[ChannelPredictionProgressEnd_outcomes]
     started_at: str
-    locks_at: str
+    locks_at: str # progress
+    locked_at: str # lock
 
 
 class ChannelPredictionEnd(ChannelPredictionProgressLock):
     # channel.prediction.end, version 1, channel:read:predictions or channel:manage:predictions
     status: Literal["resolved", "canceled"]
     winning_outcome_id: str
+    ended_at: str
 
 
 class ChannelHypeTrain_Contributor(TypedDict):
