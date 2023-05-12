@@ -721,13 +721,14 @@ class UserUpdate(EventData):
         The user that was updated
     email: Optional[:class:`str`]
         The users email, if you have permission to read this information
+        Requires the ``user:read:email`` scope
     description: :class:`str`
         The channels description (displayed as ``bio``)
     """
 
     __slots__ = ("user", "email", "description", "email_verified")
     _dispatches_as = "user_authorization_revoke"
-    _required_scopes = ("user:read:email",)
+    _required_scopes = None
     _version = 1
     _event = "user.update"
 
