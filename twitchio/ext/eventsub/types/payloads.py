@@ -417,8 +417,8 @@ class ChannelPredictionProgressLock(TypedDict):
     title: str
     outcomes: list[ChannelPredictionProgressEnd_outcomes]
     started_at: str
-    locks_at: str # progress
-    locked_at: str # lock
+    locks_at: str  # progress
+    locked_at: str  # lock
 
 
 class ChannelPredictionEnd(ChannelPredictionProgressLock):

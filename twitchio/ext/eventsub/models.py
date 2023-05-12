@@ -946,6 +946,7 @@ class PollChoice:
         self.channel_points_votes: int = data.get("channel_points_votes", 0)
         self.votes: int = data.get("votes", 0)
 
+
 class ChannelPollBegin(EventData):
     """
     A Poll Begin event
@@ -983,7 +984,6 @@ class ChannelPollBegin(EventData):
     _version = 1
     _event = "channel.poll.begin"
 
-
     def __init__(self, transport: BaseTransport, payload: ChannelPollBeginPayload) -> None:
         self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
         self.poll_id: str = payload["id"]
@@ -992,6 +992,7 @@ class ChannelPollBegin(EventData):
         self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"]
         self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
         self.ends_at: datetime.datetime = parse_timestamp(payload["ends_at"])
+
 
 class ChannelPollProgress(EventData):
     """
@@ -1030,8 +1031,8 @@ class ChannelPollProgress(EventData):
     _version = 1
     _event = "channel.poll.progress"
 
-
     __init__ = ChannelPollBegin.__init__
+
 
 class ChannelPollEnd(EventData):
     """
@@ -1178,6 +1179,7 @@ class ChannelPredictionBegin(EventData):
     locks_at: :class:`datetime.datetime`
         When the prediction is set to be locked.
     """
+
     _dispatches_as = "channel_prediction_begin"
     _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
     _version = 1
@@ -1192,6 +1194,7 @@ class ChannelPredictionBegin(EventData):
         self.outcomes: list[PredictionOutcome] = [PredictionOutcome(transport, x) for x in payload["outcomes"]]
         self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
         self.locks_at: datetime.datetime = parse_timestamp(payload["locks_at"])
+
 
 class ChannelPredictionProgress(EventData):
     """
@@ -1212,6 +1215,7 @@ class ChannelPredictionProgress(EventData):
     locks_at: :class:`datetime.datetime`
         When the prediction is set to be locked.
     """
+
     __slots__ = ("broadcaster", "prediction_id", "title", "outcomes", "started_at", "locks_at")
     _dispatches_as = "channel_prediction_progress"
     _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
@@ -1219,6 +1223,7 @@ class ChannelPredictionProgress(EventData):
     _event = "channel.prediction.progress"
 
     __init__ = ChannelPredictionBegin.__init__
+
 
 class ChannelPredictionLock(EventData):
     """
@@ -1239,6 +1244,7 @@ class ChannelPredictionLock(EventData):
     locked_at: :class:`datetime.datetime`
         When the prediction was locked.
     """
+
     __slots__ = ("broadcaster", "prediction_id", "title", "outcomes", "started_at", "locked_at")
     _dispatches_as = "channel_prediction_lock"
     _required_scopes = ("channel:read:predictions", "channel:manage:predictions")
@@ -1322,8 +1328,9 @@ class ChannelCustomRewardModify(EventData):
 
     Attributes
     -----------
-    
+
     """
+
 
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
 AllModels = Union[
@@ -1356,5 +1363,5 @@ AllModels = Union[
     ChannelPredictionBegin,
     ChannelPredictionProgress,
     ChannelPredictionLock,
-    ChannelPredictionEnd
+    ChannelPredictionEnd,
 ]

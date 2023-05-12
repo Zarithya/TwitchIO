@@ -189,13 +189,13 @@ class Client(Generic[TokenHandlerT]):
 
     async def event_channel_moderator_remove(self, event: NotificationEvent[models.ChannelModeratorRemove]) -> None:
         ...
-    
+
     async def event_channel_poll_start(self, event: NotificationEvent[models.ChannelPollBegin]) -> None:
         ...
-    
+
     async def event_channel_poll_progress(self, event: NotificationEvent[models.ChannelPollProgress]) -> None:
         ...
-    
+
     async def event_channel_poll_end(self, event: NotificationEvent[models.ChannelPollEnd]) -> None:
         ...
 

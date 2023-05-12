@@ -1160,7 +1160,11 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request(Route("PATCH", "chat/settings", data, parameters=params, target=target))
 
-    ######### NEW STUFF TO UPDATE
+    async def get_global_chat_badges(self) -> Any:
+        return await self.request(Route("GET", "chat/badges/global", None))
+
+        ######### NEW STUFF TO UPDATE
+
     async def post_chat_announcement(
         self,
         target: PartialUser,
@@ -1286,3 +1290,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             ("to_broadcaster_id", to_broadcaster_id),
         ]
         return self.request(Route("POST", "chat/shoutouts", None, parameters=params, target=target))
+
+    async def get_channel_chat_badges(self, broadcaster_id: str) -> Any:
+        params: ParameterType = [("broadcaster_id", broadcaster_id)]
+        return await self.request(Route("GET", "chat/badges", None, parameters=params))

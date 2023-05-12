@@ -701,6 +701,22 @@ class Client:
 
         return resp
 
+    async def fetch_global_chat_badges(self, target: PartialUser | None = None) -> list[ChatBadge]:
+        """|coro|
+
+        Fetches Twitch's list of chat badges, which users may use in any channel's chat room
+
+        Parameters
+        -----------
+        target: Optional[:class:`~twitchio.PartialUser`]
+            The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler
+
+        Returns:
+        List[:class:`~twitchio.ChatBadges`]
+        """
+        data = await self._http.get_global_chat_badges()
+        return [ChatBadge(x) for x in data["data"]]
+
     async def event_shard_ready(self, number: int) -> None:
         """|coro|
 
