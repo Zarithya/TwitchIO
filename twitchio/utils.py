@@ -22,11 +22,11 @@ SOFTWARE.
 """
 
 import datetime
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 import iso8601
 
-__all__ = ("json_loader", "json_dumper")
+__all__ = ("json_loader", "json_dumper", "copy_doc", "MISSING")
 
 try:
     from orjson import dumps as _orjson_dumps, loads as _loads
@@ -66,3 +66,24 @@ def parse_timestamp(timestamp: str) -> datetime.datetime:
 
     """
     return iso8601.parse_date(timestamp, datetime.timezone.utc)
+
+
+T_cb = TypeVar("T_cb", bound=Callable[..., Any])
+
+def copy_doc(fn: Callable[..., Any]) -> Callable[[T_cb], T_cb]:
+    """
+    Copies a docstring to another function. This is a decorator.
+
+    Parameters
+    -----------
+    fn: Callable
+        The function to copy from.
+    """
+    def deco(to: T_cb) -> T_cb:
+        if not fn.__doc__:
+            raise TypeError(f"{fn!r} has no docstring")
+        
+        to.__doc__ = fn.__doc__
+        return to
+    
+    return deco
