@@ -546,6 +546,23 @@ class UserUpdate(TypedDict):
     email_verified: bool
     description: str
 
+class _ChannelShieldmode(TypedDict):
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    moderator_user_id: str
+    moderator_user_login: str
+    moderator_user_name: str
+
+
+class ChannelShieldModeBegin(_ChannelShieldmode):
+    # channel.shield_mode.begin, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
+    started_at: str
+
+
+class ChannelShieldModeEnd(_ChannelShieldmode):
+    # channel.shield_mode.end, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
+    ended_at: str
 
 # BETA events
 
@@ -603,25 +620,6 @@ class ChannelCharitycampaignProgress(TypedDict):
 class ChannelCharitycampaignStop(ChannelCharitycampaignProgress):
     # channel.charity_campaign.stop, version beta, channel:read:charity
     stopped_at: str
-
-
-class _ChannelShieldmode(TypedDict):
-    broadcaster_user_id: str
-    broadcaster_user_login: str
-    broadcaster_user_name: str
-    moderator_user_id: str
-    moderator_user_login: str
-    moderator_user_name: str
-
-
-class ChannelShieldModeBegin(_ChannelShieldmode):
-    # channel.shield_mode.begin, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
-    started_at: str
-
-
-class ChannelShieldModeEnd(_ChannelShieldmode):
-    # channel.shield_mode.end, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
-    ended_at: str
 
 
 AllPayloads = Union[
