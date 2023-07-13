@@ -1012,7 +1012,9 @@ class ChannelPollBegin(EventData):
         self.poll_id: str = payload["id"]
         self.title: str = payload["title"]
         self.choices = [PollChoice(c) for c in payload["choices"]]
-        self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"] # bits voting is not a thing anymore, so this is the forced default
+        self.cost_per_vote: int = payload["channel_points_voting"][
+            "amount_per_vote"
+        ]  # bits voting is not a thing anymore, so this is the forced default
         self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
         self.ends_at: datetime.datetime = parse_timestamp(payload["ends_at"])
 
@@ -1351,10 +1353,11 @@ class ChannelCustomReward_streamlimits:
         self.enabled: bool = payload["is_enabled"]
         self.value: int = payload["value"]
 
+
 class ChannelCustomReward_global_cooldown:
     """
     Indicates what cooldowns are applied globally when a reward is redeemed.
-    
+
     Attributes
     -----------
     enabled: :class:`bool`
@@ -1362,7 +1365,7 @@ class ChannelCustomReward_global_cooldown:
     seconds: :class:`int`
         The cooldown after this reward is redeemed.
     """
-    
+
     __slots__ = ("enabled", "seconds")
 
     def __init__(self, payload: ChannelCustomReward_global_cooldownPayload) -> None:
@@ -1370,7 +1373,7 @@ class ChannelCustomReward_global_cooldown:
         self.seconds: int = payload["seconds"]
 
 
-class ChannelCustomReward(EventData): # type: ignore
+class ChannelCustomReward(EventData):  # type: ignore
     """
     A Custom Reward event
 
@@ -1430,7 +1433,7 @@ class ChannelCustomReward(EventData): # type: ignore
         "max_per_user_per_stream",
         "global_cooldown",
         "image",
-        "default_image"
+        "default_image",
     )
 
     def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardModifyPayload) -> None:
@@ -1444,13 +1447,20 @@ class ChannelCustomReward(EventData): # type: ignore
         self.prompt: str = payload["prompt"]
         self.user_input_required: bool = payload["is_user_input_required"]
         self.redemptions_skip_request_queue: bool = payload["should_redemptions_skip_request_queue"]
-        self.cooldown_expires_at: datetime.datetime | None = parse_timestamp(payload["cooldown_expires_at"]) if payload["cooldown_expires_at"] else None
+        self.cooldown_expires_at: datetime.datetime | None = (
+            parse_timestamp(payload["cooldown_expires_at"]) if payload["cooldown_expires_at"] else None
+        )
         self.amount_redeemed_current_stream: int | None = payload["redemptions_redeemed_current_stream"]
         self.background_color: str = payload["background_color"]
-        self.max_per_stream: ChannelCustomReward_streamlimits = ChannelCustomReward_streamlimits(payload["max_per_stream"])
-        self.global_cooldown: ChannelCustomReward_global_cooldown = ChannelCustomReward_global_cooldown(payload["global_cooldown"])
+        self.max_per_stream: ChannelCustomReward_streamlimits = ChannelCustomReward_streamlimits(
+            payload["max_per_stream"]
+        )
+        self.global_cooldown: ChannelCustomReward_global_cooldown = ChannelCustomReward_global_cooldown(
+            payload["global_cooldown"]
+        )
         self.image: ImageLinks = ImageLinks(payload["image"])
         self.default_image: ImageLinks = ImageLinks(payload["default_image"])
+
 
 @copy_doc(ChannelCustomReward)
 class ChannelCustomRewardAdd(ChannelCustomReward):
@@ -1458,6 +1468,7 @@ class ChannelCustomRewardAdd(ChannelCustomReward):
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
     _event = "channel.channel_points_custom_reward.add"
+
 
 @copy_doc(ChannelCustomReward)
 class ChannelCustomRewardUpdate(ChannelCustomReward):
@@ -1491,18 +1502,14 @@ class PartialReward:
         The prompt the user received when redeeming the reward.
     """
 
-    __slots__ = (
-        "id",
-        "title",
-        "cost",
-        "prompt"
-    )
+    __slots__ = ("id", "title", "cost", "prompt")
 
     def __init__(self, payload: ChannelCustomRewardRedemptionModify_RewardPayload) -> None:
         self.id: str = payload["id"]
         self.title: str = payload["title"]
         self.cost: int = payload["cost"]
         self.prompt: str = payload["prompt"]
+
 
 class ChannelCustomRewardRedemptionAdd(EventData):
     """
@@ -1526,15 +1533,7 @@ class ChannelCustomRewardRedemptionAdd(EventData):
         When the reward was redeemed.
     """
 
-    __slots__ = (
-        "id",
-        "broadcaster",
-        "user",
-        "user_input",
-        "status",
-        "reward",
-        "redeemed_at"
-    )
+    __slots__ = ("id", "broadcaster", "user", "user_input", "status", "reward", "redeemed_at")
 
     _dispatches_as = "channel_points_reward_redemption"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
@@ -1588,7 +1587,7 @@ class ChannelShoutoutCreate(EventData):
         "started_at",
         "viewer_count",
         "cooldown_ends_at",
-        "target_cooldown_ends_at"
+        "target_cooldown_ends_at",
     )
 
     _dispatches_as = "channel_shoutout_create"
@@ -1622,12 +1621,7 @@ class ChannelShoutoutRecieve(EventData):
         How many viewers saw the shoutout.
     """
 
-    __slots__ = (
-        "broadcaster",
-        "sender",
-        "started_at",
-        "viewer_count"
-    )
+    __slots__ = ("broadcaster", "sender", "started_at", "viewer_count")
 
     _dispatches_as = "channel_shoutout_receive"
     _required_scopes = ("channel:read:shoutouts", "channel:manage:shoutouts")
@@ -1679,5 +1673,5 @@ AllModels = Union[
     ChannelCustomRewardRedemptionAdd,
     ChannelCustomRewardRedemptionUpdate,
     ChannelShoutoutCreate,
-    ChannelShoutoutRecieve
+    ChannelShoutoutRecieve,
 ]

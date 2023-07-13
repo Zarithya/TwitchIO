@@ -224,7 +224,7 @@ class Client(Generic[TokenHandlerT]):
         -----------
         broadcaster: :class:`~twitchio.PartialUser`
             The channel to for this subscription to target.
-        
+
         Returns
         --------
         :class:`dict` The response from Twitch.

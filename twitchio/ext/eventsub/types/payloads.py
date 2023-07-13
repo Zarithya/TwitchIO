@@ -546,6 +546,7 @@ class UserUpdate(TypedDict):
     email_verified: bool
     description: str
 
+
 class _ChannelShieldmode(TypedDict):
     broadcaster_user_id: str
     broadcaster_user_login: str
@@ -581,6 +582,7 @@ class ChannelShoutoutCreate(TypedDict):
     cooldown_ends_at: str
     target_cooldown_ends_at: str
 
+
 class ChannelShoutoutReceive(TypedDict):
     # channel.shoutout.receive, version 1, moderator:read:shoutouts or moderator:manage:shoutouts (for mod not broadcaster)
     broadcaster_user_id: str
@@ -591,6 +593,7 @@ class ChannelShoutoutReceive(TypedDict):
     from_broadcaster_user_name: str
     viewer_count: int
     started_at: str
+
 
 # BETA events
 
@@ -670,7 +673,7 @@ class ChannelGuestStarSessionEnd(TypedDict):
 
 
 class ChannelGuestStarGuestUpdate(TypedDict):
-    # channel.guest_star_guest.update, version beta, 
+    # channel.guest_star_guest.update, version beta,
     # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
     broadcaster_user_id: str
     broadcaster_user_login: str
@@ -687,7 +690,7 @@ class ChannelGuestStarGuestUpdate(TypedDict):
 
 
 class ChannelGuestStarGuestSlotUpdate(TypedDict):
-    # channel.guest_star_slot.update, version beta, 
+    # channel.guest_star_slot.update, version beta,
     # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
     broadcaster_user_id: str
     broadcaster_user_login: str
@@ -706,7 +709,7 @@ class ChannelGuestStarGuestSlotUpdate(TypedDict):
 
 
 class ChannelGuestStarSettingsUpdate(TypedDict):
-    # channel.guest_star_settings.update, version beta, 
+    # channel.guest_star_settings.update, version beta,
     # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
     broadcaster_user_id: str
     broadcaster_user_login: str

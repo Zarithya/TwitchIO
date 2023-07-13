@@ -297,7 +297,7 @@ class NotificationEvent(BaseEvent, Generic[D]):
         typ = self.subscription.type
         d = _event_map[typ](self.transport, data)
 
-        self.data = d # type: ignore
+        self.data = d  # type: ignore
 
 
 class ReconnectEvent(BaseEvent):
