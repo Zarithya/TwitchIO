@@ -143,19 +143,19 @@ class Client(Generic[TokenHandlerT]):
     # subclassable events
 
     async def event_challenge(self, event: ChallengeEvent) -> None:
-        pass
+        ...
 
     async def event_revocation(self, event: RevocationEvent) -> None:
-        pass
+        ...
 
     async def event_notification(self, event: NotificationEvent) -> None:
-        pass
+        ...
 
     async def event_channel_update(self, event: NotificationEvent[models.ChannelUpdate]) -> None:
-        pass
+        ...
 
     async def event_channel_follow(self, event: NotificationEvent[models.ChannelFollow]) -> None:
-        pass
+        ...
 
     async def event_channel_subscribe(self, event: NotificationEvent[models.ChannelSubscribe]) -> None:
         ...

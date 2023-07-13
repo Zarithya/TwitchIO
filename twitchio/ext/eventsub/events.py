@@ -120,7 +120,7 @@ class WebsocketMeta(BaseMeta):
     def __init__(self, data: _WebsocketMessageMetadata) -> None:
         self.message_id = data["message_id"]
         self.message_type = data["message_type"]
-        self.timestamp = _parse_timestamp(data["timestamp"])
+        self.timestamp = _parse_timestamp(data["message_timestamp"])
 
         self.signature = None
         self.message_retry = None
@@ -176,7 +176,7 @@ class BaseEvent(Protocol):
         self.subscription = Subscription(data["subscription"], transport)
         self.meta = WebhookMeta(headers)
         if "challenge" in data:
-            self.prepare(data)  # type: ignore
+            self.prepare(data)
         else:
             self.prepare(data["payload"])
         return self
@@ -297,7 +297,7 @@ class NotificationEvent(BaseEvent, Generic[D]):
         typ = self.subscription.type
         d = _event_map[typ](self.transport, data)
 
-        self.data = d
+        self.data = d # type: ignore
 
 
 class ReconnectEvent(BaseEvent):
