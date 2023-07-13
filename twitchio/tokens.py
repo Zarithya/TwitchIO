@@ -29,8 +29,8 @@ import aiohttp
 from typing_extensions import Self
 from yarl import URL
 
-from .exceptions import InvalidToken, RefreshFailure
-from .utils import json_loader
+from .exceptions import InvalidToken, RefreshFailure, NoTokenAvailable
+from .utils import json_loader, maybe_coro
 
 if TYPE_CHECKING:
     from .client import Client
@@ -49,16 +49,48 @@ class BaseToken:
     This base class takes an access token, and does no validation on it before allowing it to be used for requests.
     This is useful for passing app access tokens.
 
+    .. container:: operations
+
+        .. describe:: x == y
+
+            Checks if the token is equal to another.
+        
+        .. describe:: x != y
+
+            Checks if the token is not equal to another.
+        
+        .. describe:: str(x)
+
+            Returns the token.
+
+        .. describe:: hash(x)
+
+            Returns the hash of the access token
+
     Attributes
     -----------
     access_token: :class:`str`
-        The access token to use
+        The access token to use.
 
     .. versionadded:: 3.0
     """
 
+    __TOKEN_SHOWS_IN_REPR__ = True
+
     def __init__(self, access_token: str) -> None:
         self.access_token: str = access_token
+    
+    def __eq__(self, other: object) -> bool:
+        return (isinstance(other, BaseToken) and other.access_token == self.access_token) or (isinstance(other, str) and other == self.access_token)
+    
+    def __hash__(self) -> int:
+        return hash(self.access_token)
+
+    def __str__(self) -> str:
+        return self.access_token
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'}>"
 
     async def get(self, http: HTTPHandler, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> str:
         """|coro|
@@ -91,6 +123,26 @@ class Token(BaseToken):
     A container around user OAuth tokens.
     This class will automatically ensure tokens are valid before allowing the library to use them, and will refresh tokens if possible.
 
+    .. container:: operations
+
+        .. describe:: x == y
+
+            Checks if the token is equal to another.
+        
+        .. describe:: x != y
+
+            Checks if the token is not equal to another.
+        
+        .. describe:: str(x)
+
+            Returns the token.
+
+        .. describe:: hash(x)
+
+            Returns the hash of the access token
+
+    .. versionadded:: 3.0
+
     Attributes
     -----------
     access_token: :class:`str`
@@ -106,6 +158,10 @@ class Token(BaseToken):
         self._user: PartialUser | None = None
         self._scopes: list[str] = []
         self._last_validation: float | None = None
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} user={self._user} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} " \
+            f"refresh_token={self.refresh_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} scopes={self._scopes}>"
 
     async def refresh(self, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> None:
         """|coro|
@@ -122,7 +178,9 @@ class Token(BaseToken):
         Raises
         -------
         :error:`~twitchio.InvalidToken`
-            The refresh token is missing or invalid
+            The refresh token is missing or invalid.
+        :error:`~twitchio.RefreshFailure`
+            The token could not be refreshed.
         """
         client_id, client_secret = await handler.get_client_credentials()
 
@@ -230,10 +288,49 @@ class Token(BaseToken):
 class BaseTokenHandler:
     """
     A base class to manage user tokens.
-    Ill fill this in later
-    """
+    
+    This class is designed to be subclassed.
+    The library will aggressively cache user tokens, and will only call your code when a token cannot be found in the cache.
 
+    A short example of a subclassed token handler:
+
+    .. code-block:: python
+
+        import os
+        import json
+        import twitchio
+        
+        class MyTokenHandler(twitchio.BaseTokenHandler):
+            def __init__(self):
+                # While we recommend storing tokens in an actual database, this will suffice for the example.
+                # A JSON file will suffice fine for a personal bot, however if you wish to expand to support more users,
+                # using a JSON file is an extremely bad idea.
+
+                # This example JSON file stores tokens in a dict of user_id: [token, refresh_token]. It does not take scopes into account, 
+                # which you should probably do. 
+
+                with open("tokens.json") as file:
+                    self.user_tokens = json.load(file)
+                
+                super().__init__()
+                
+            def get_client_credentials(self): # can be async
+                return os.getenv("CLIENT_ID"), os.getenv("CLIENT_SECRET")
+            
+            def get_irc_token(self): # can be async
+                return twitchio.Token(os.getenv("IRC_TOKEN"))
+            
+            async def get_user_token(self, user: twitchio.PartialUser, scopes: list[str]): # can be sync
+                user_id = user.id
+                if user_id not in self.user_tokens:
+                    raise RuntimeError("User not found :(")
+                
+                tokens = self.user_tokens[user_id]
+                return twitchio.Token(tokens[0], refresh_token=tokens[1])
+    """
     client: Client
+
+    __oauth_url__ = "https://id.twitch.tv/oauth2/token"
 
     def __init__(self) -> None:
         self.__cache: dict[User | PartialUser, set[Token]] = {}
@@ -241,33 +338,23 @@ class BaseTokenHandler:
     def _post_init(self, client: Client) -> Self:
         self.client = client
         return self
+    
+    async def _get_token_from_credentials(self) -> BaseToken | None:
+        # this does not raise if no client secret is found, only if an http error occurs
+        client_id, client_secret = await maybe_coro(self.get_client_credentials)
 
-    async def get_user_token(self, user: User | PartialUser, scopes: list[str]) -> Token:
-        """|coro|
-        Method to be overriden in a subclass.
-        This function receives a user and a list of scopes that the request needs any one of to make the request.
-        It should return a :class:`Token` object.
-
-        .. note::
-            It is a good idea to pass a refresh token if you have one available,
-            the library will automatically handle refreshing tokens if one is provided.
-
-        Parameters
-        -----------
-        user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
-            The user that a token is expected for.
-        scopes: list[:class:`str`]
-            A list of scopes that the endpoint needs one of. Any one or more of the scopes must be present on the returned token to successfully make the request
-
-        Returns
-        --------
-        :class:`Token`
-            The token for the associated user.
-        """
-        raise NotImplementedError
-
-    async def get_client_token(self) -> str:
-        raise NotImplementedError
+        if not (client_id and client_secret):
+            return None
+        
+        query = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "client_credentials"
+        }
+        async with self.client._http._session.post(URL(self.__oauth_url__).with_query(query)) as resp: # type: ignore
+            resp.raise_for_status() # this may hard crash, but thats intentional, as this indicates a failure to acquire the proper tokens
+            data = await resp.json(loads=json_loader)
+            return BaseToken(data["access_token"])
 
     async def _client_get_user_token(
         self, http: HTTPHandler, user: User | PartialUser, scope: list[str], *, no_cache: bool = False
@@ -302,14 +389,24 @@ class BaseTokenHandler:
 
     async def _client_get_client_token(self) -> BaseToken:
         try:
-            return BaseToken(await self.get_client_token())
+            t = await maybe_coro(self.get_client_token)
         except Exception as e:
             # TODO fire error handlers
             raise
+        
+        if t:
+            return t
+        
+        token = await self._get_token_from_credentials()
+
+        if not token:
+            raise NoTokenAvailable(f"No token was returned from {self.__class__.__name__}.get_client_token, and one could not be generated.")
+                
+        return token
 
     async def _client_get_irc_login(self, client: Client, shard_id: int) -> tuple[str, PartialUser]:
         try:
-            token = await self.get_irc_token(shard_id)
+            token = await maybe_coro(self.get_irc_token, shard_id)
         except Exception as e:
             raise  # TODO fire error handlers
 
@@ -324,9 +421,26 @@ class BaseTokenHandler:
             )
 
         return resp, token._user  # type: ignore
+        
+    async def get_client_token(self) -> BaseToken:
+        """|maybecoro|
+        Method to be overriden in a subclass.
+        This should return a client token (generated with client id and client secret). If not implemented,
+        the library will attempt to generate one with the credentials returned from :meth:`~.get_client_credentials`.
+        
+        .. warning::
+
+            If the library is unable to fetch any client token, it will hard crash.
+        
+        Returns
+        --------
+        :class:`BaseToken`
+            The client token.
+        """
+        raise NotImplementedError
 
     async def get_client_credentials(self) -> tuple[str, str | None]:
-        """|coro|
+        """|maybecoro|
         Method to be overriden in a subclass.
         This should return a :class:`tuple` of (client id, client secret).
         The client secret is not required, however the client id is required to make requests to the twitch API.
@@ -335,7 +449,7 @@ class BaseTokenHandler:
         raise NotImplementedError
 
     async def get_irc_token(self, shard_id: int) -> Token:
-        """|coro|
+        """|maybecoro|
         Method to be overriden in a subclass.
         This should return a :class:`Token` containing an OAuth token with the ``chat:login`` scope.
 
@@ -348,6 +462,30 @@ class BaseTokenHandler:
         -------
         :class:`Token`
             The token with which to connect
+        """
+        raise NotImplementedError
+    
+    async def get_user_token(self, user: User | PartialUser, scopes: list[str]) -> Token:
+        """|maybecoro|
+        Method to be overriden in a subclass.
+        This function receives a user and a list of scopes that the request needs any one of to make the request.
+        It should return a :class:`Token` object.
+
+        .. note::
+            It is a good idea to pass a refresh token if you have one available,
+            the library will automatically handle refreshing tokens if one is provided.
+
+        Parameters
+        -----------
+        user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+            The user that a token is expected for.
+        scopes: list[:class:`str`]
+            A list of scopes that the endpoint needs one of. Any one or more of the scopes must be present on the returned token to successfully make the request
+
+        Returns
+        --------
+        :class:`Token`
+            The token for the associated user.
         """
         raise NotImplementedError
 

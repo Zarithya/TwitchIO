@@ -28,6 +28,7 @@ __all__ = (
     "TwitchIOException",
     "JoinFailed",
     "AuthenticationError",
+    "NoTokenAvailable",
     "InvalidToken",
     "RefreshFailure",
     "EventNotFound",
@@ -53,6 +54,9 @@ class JoinFailed(TwitchIOException):
 
 
 class AuthenticationError(TwitchIOException):
+    pass
+
+class NoTokenAvailable(AuthenticationError):
     pass
 
 

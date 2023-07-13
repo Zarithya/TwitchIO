@@ -22,11 +22,12 @@ SOFTWARE.
 """
 
 import datetime
-from typing import Any, Callable, TypeVar
+import inspect
+from typing import Any, Callable, Coroutine, TypeVar, Awaitable
 
 import iso8601
 
-__all__ = ("json_loader", "json_dumper", "copy_doc", "MISSING")
+__all__ = ("json_loader", "json_dumper", "copy_doc", "maybe_coro", "MISSING")
 
 try:
     from orjson import dumps as _orjson_dumps, loads as _loads
@@ -67,7 +68,7 @@ def parse_timestamp(timestamp: str) -> datetime.datetime:
     """
     return iso8601.parse_date(timestamp, datetime.timezone.utc)
 
-
+T = TypeVar("T")
 T_cb = TypeVar("T_cb", bound=Callable[..., Any])
 
 def copy_doc(fn: Callable[..., Any]) -> Callable[[T_cb], T_cb]:
@@ -87,3 +88,24 @@ def copy_doc(fn: Callable[..., Any]) -> Callable[[T_cb], T_cb]:
         return to
     
     return deco
+
+async def maybe_coro(_fn: Callable[..., Coroutine[Any, Any, T] | Callable[..., T]], /, *args, **kwargs) -> T:
+    """
+    Calls a function, and awaits it if it's a coroutine.
+
+    Parameters
+    -----------
+    _fn: ``Callable | Awaitable[Callable]``
+        The function to call.
+    *args: Any
+        Any positional arguments.
+    **kwargs: Any
+        Any keyword arguments.
+    """
+
+    resp: Any = _fn(*args, **kwargs)
+
+    if inspect.isawaitable(resp):
+        resp = await resp
+    
+    return resp
