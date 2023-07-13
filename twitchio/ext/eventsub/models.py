@@ -1464,7 +1464,7 @@ class ChannelCustomReward(EventData):  # type: ignore
 
 @copy_doc(ChannelCustomReward)
 class ChannelCustomRewardAdd(ChannelCustomReward):
-    _dispatches_as = "channel_custom_reward_add"
+    _dispatches_as = "channel_reward_add"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
     _event = "channel.channel_points_custom_reward.add"
@@ -1472,7 +1472,7 @@ class ChannelCustomRewardAdd(ChannelCustomReward):
 
 @copy_doc(ChannelCustomReward)
 class ChannelCustomRewardUpdate(ChannelCustomReward):
-    _dispatches_as = "channel_custom_reward_update"
+    _dispatches_as = "channel_reward_update"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
     _event = "channel.channel_points_custom_reward.update"
@@ -1605,7 +1605,7 @@ class ChannelShoutoutCreate(EventData):
         self.target_cooldown_ends_at: datetime.datetime = parse_timestamp(payload["target_cooldown_ends_at"])
 
 
-class ChannelShoutoutRecieve(EventData):
+class ChannelShoutoutReceive(EventData):
     """
     A shoutout receive event. This is created when a shoutout is received, not created.
 
@@ -1673,5 +1673,5 @@ AllModels = Union[
     ChannelCustomRewardRedemptionAdd,
     ChannelCustomRewardRedemptionUpdate,
     ChannelShoutoutCreate,
-    ChannelShoutoutRecieve,
+    ChannelShoutoutReceive,
 ]
