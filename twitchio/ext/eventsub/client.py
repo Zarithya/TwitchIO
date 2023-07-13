@@ -204,7 +204,28 @@ class Client(Generic[TokenHandlerT]):
 
     async def event_channel_poll_end(self, event: NotificationEvent[models.ChannelPollEnd]) -> None:
         ...
+    
+    async def event_channel_reward_add(self, event: NotificationEvent[models.ChannelCustomRewardAdd]) -> None:
+        ...
 
+    async def event_channel_reward_update(self, event: NotificationEvent[models.ChannelCustomRewardUpdate]) -> None:
+        ...
+    
+    async def event_channel_reward_remove(self, event: NotificationEvent[models.ChannelCustomRewardRemove]) -> None:
+        ...
+        
+    async def event_channel_reward_redemption(self, event: NotificationEvent[models.ChannelCustomRewardRedemptionAdd]) -> None:
+        ...
+    
+    async def event_channel_reward_redemption_update(self, event: NotificationEvent[models.ChannelCustomRewardRedemptionUpdate]) -> None:
+        ...
+    
+    async def event_channel_shoutout_create(self, event: NotificationEvent[models.ChannelShoutoutCreate]) -> None:
+        ...
+    
+    async def event_channel_shoutout_receive(self, event: NotificationEvent[models.ChannelShoutoutReceive]) -> None:
+        ...
+    
     async def event_stream_online(self, event: NotificationEvent[models.StreamOnline]) -> None:
         ...
 
@@ -217,13 +238,18 @@ class Client(Generic[TokenHandlerT]):
         self, topic: Type[models.AllModels], broadcaster: PartialUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id)}, broadcaster)
+    
+    def _subscribe_with_moderator(
+            self, topic: Type[models.AllModels], broadcaster: PartialUser, moderator: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
+        return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id), "moderator_user_id": str(moderator.id)}, moderator)
 
     def subscribe_channel_bans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         """
         Parameters
         -----------
         broadcaster: :class:`~twitchio.PartialUser`
-            The channel to for this subscription to target.
+            The channel to for this subscription to target. This user must have authenticated your app.
 
         Returns
         --------
@@ -335,3 +361,48 @@ class Client(Generic[TokenHandlerT]):
     @utils.copy_doc(subscribe_channel_bans)
     def subscribe_channel_prediction_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionEnd, broadcaster)
+    
+    @utils.copy_doc(subscribe_channel_bans)
+    def subscribe_channel_reward_add(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelCustomRewardAdd, broadcaster)   
+     
+    @utils.copy_doc(subscribe_channel_bans)
+    def subscribe_channel_reward_update(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelCustomRewardUpdate, broadcaster)
+        
+    @utils.copy_doc(subscribe_channel_bans)
+    def subscribe_channel_reward_remove(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_broadcaster(models.ChannelCustomRewardRemove, broadcaster)
+        
+    def subscribe_channel_reward_redeem(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        """
+        Parameters
+        -----------
+        broadcaster: :class:`~twitchio.PartialUser`
+            The channel to for this subscription to target.
+        moderator: :class:`~twitchio.PartialUser`
+            The moderator that is authorizing the action. This user must have authenticated your app.
+
+        Returns
+        --------
+        :class:`dict` The response from Twitch.
+        keys:
+        - data: :class:`list`[Subscription dict] - The subscription that was created.
+        - total: :class:`int` - The total subscriptions created.
+        - total_cost: :class:`int` - The sum of the cost of existing subscriptions.
+        - max_total_cost: :class:`int` - The maximum allowed cost.
+        """
+        return self._subscribe_with_moderator(models.ChannelCustomRewardRedemptionAdd, broadcaster, moderator)
+    
+    @utils.copy_doc(subscribe_channel_reward_redeem)
+    def subscribe_channel_reward_redeem_update(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_moderator(models.ChannelCustomRewardRedemptionUpdate, broadcaster, moderator)
+    
+    @utils.copy_doc(subscribe_channel_reward_redeem)
+    def subscribe_channel_shoutout_create(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_moderator(models.ChannelShoutoutCreate, broadcaster, moderator)
+
+    @utils.copy_doc(subscribe_channel_reward_redeem)
+    def subscribe_channel_shoutout_receive(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+        return self._subscribe_with_moderator(models.ChannelShoutoutReceive, broadcaster, moderator)
+    
