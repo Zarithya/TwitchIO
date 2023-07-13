@@ -564,6 +564,34 @@ class ChannelShieldModeEnd(_ChannelShieldmode):
     # channel.shield_mode.end, version 1, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
     ended_at: str
 
+
+class ChannelShoutoutCreate(TypedDict):
+    # channel.shoutout.create, version 1, moderator:read:shoutouts or moderator:manage:shoutouts (for mod not broadcaster)
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    moderator_user_id: str
+    moderator_user_login: str
+    moderator_user_name: str
+    to_broadcaster_user_id: str
+    to_broadcaster_user_login: str
+    to_broadcaster_user_name: str
+    started_at: str
+    viewer_count: int
+    cooldown_ends_at: str
+    target_cooldown_ends_at: str
+
+class ChannelShoutoutReceive(TypedDict):
+    # channel.shoutout.receive, version 1, moderator:read:shoutouts or moderator:manage:shoutouts (for mod not broadcaster)
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    from_broadcaster_user_id: str
+    from_broadcaster_user_login: str
+    from_broadcaster_user_name: str
+    viewer_count: int
+    started_at: str
+
 # BETA events
 
 
