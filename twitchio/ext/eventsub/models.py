@@ -1373,7 +1373,7 @@ class ChannelCustomReward_global_cooldown:
         self.seconds: int = payload["seconds"]
 
 
-class ChannelCustomReward(EventData):  # type: ignore
+class ChannelCustomReward:
     """
     A Custom Reward event
 
@@ -1463,7 +1463,7 @@ class ChannelCustomReward(EventData):  # type: ignore
 
 
 @copy_doc(ChannelCustomReward)
-class ChannelCustomRewardAdd(ChannelCustomReward):
+class ChannelCustomRewardAdd(ChannelCustomReward, EventData):
     _dispatches_as = "channel_reward_add"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
@@ -1471,7 +1471,7 @@ class ChannelCustomRewardAdd(ChannelCustomReward):
 
 
 @copy_doc(ChannelCustomReward)
-class ChannelCustomRewardUpdate(ChannelCustomReward):
+class ChannelCustomRewardUpdate(ChannelCustomReward, EventData):
     _dispatches_as = "channel_reward_update"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
@@ -1479,7 +1479,7 @@ class ChannelCustomRewardUpdate(ChannelCustomReward):
 
 
 @copy_doc(ChannelCustomReward)
-class ChannelCustomRewardRemove(ChannelCustomReward):
+class ChannelCustomRewardRemove(ChannelCustomReward, EventData):
     _dispatches_as = "channel_custom_reward_remove"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
@@ -1551,12 +1551,22 @@ class ChannelCustomRewardRedemptionAdd(EventData):
 
 
 @copy_doc(ChannelCustomRewardRedemptionAdd)
-class ChannelCustomRewardRedemptionUpdate(ChannelCustomRewardRedemptionAdd):
+class ChannelCustomRewardRedemptionUpdate(EventData):
+    __slots__ = ("id", "broadcaster", "user", "user_input", "status", "reward", "redeemed_at")
+
     _dispatches_as = "channel_points_reward_redemption_update"
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
     _event = "channel.channel_points_custom_reward_redemption.update"
-
+    
+    def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardRedemptionModifyPayload) -> None:
+        self.id: str = payload["id"]
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.user_input: str = payload["user_input"]
+        self.status: Literal["unfulfilled", "fulfilled", "cancelled"] = payload["status"]
+        self.reward: PartialReward = PartialReward(payload["reward"])
+        self.redeemed_at = parse_timestamp(payload["redeemed_at"])
 
 class ChannelShoutoutCreate(EventData):
     """
