@@ -556,12 +556,12 @@ class _ChannelShieldmode(TypedDict):
 
 
 class ChannelShieldModeBegin(_ChannelShieldmode):
-    # channel.shield_mode.begin, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
+    # channel.shield_mode.begin, version 1, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
     started_at: str
 
 
 class ChannelShieldModeEnd(_ChannelShieldmode):
-    # channel.shield_mode.end, version beta, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
+    # channel.shield_mode.end, version 1, moderator:read:shield_mode or moderator:manage:shield_mode (note that this is for the moderator, not broadcaster)
     ended_at: str
 
 # BETA events
@@ -620,6 +620,73 @@ class ChannelCharitycampaignProgress(TypedDict):
 class ChannelCharitycampaignStop(ChannelCharitycampaignProgress):
     # channel.charity_campaign.stop, version beta, channel:read:charity
     stopped_at: str
+
+
+class ChannelGuestStarSessionBegin(TypedDict):
+    # channel.guest_star_session.begin, version beta, channel:read:guest_star or channel:manage:guest_star
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    session_id: str
+    started_at: str
+
+
+class ChannelGuestStarSessionEnd(TypedDict):
+    # channel.guest_star_session.end, version beta, channel:read:guest_star or channel:manage:guest_star
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    session_id: str
+    started_at: str
+    ended_at: str
+
+
+class ChannelGuestStarGuestUpdate(TypedDict):
+    # channel.guest_star_guest.update, version beta, 
+    # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    session_id: str
+    moderator_user_id: str
+    moderator_user_login: str
+    moderator_user_name: str
+    guest_user_id: str
+    guest_user_name: str
+    guest_user_login: str
+    slot_id: str
+    state: Literal["live", "removed", "backstage", "ready", "invited"]
+
+
+class ChannelGuestStarGuestSlotUpdate(TypedDict):
+    # channel.guest_star_slot.update, version beta, 
+    # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    session_id: str
+    moderator_user_id: str
+    moderator_user_login: str
+    moderator_user_name: str
+    guest_user_id: str
+    guest_user_name: str
+    guest_user_login: str
+    slot_id: str
+    host_video_enabled: bool
+    host_audio_enabled: bool
+    host_volume: int
+
+
+class ChannelGuestStarSettingsUpdate(TypedDict):
+    # channel.guest_star_settings.update, version beta, 
+    # channel:read:guest_star or channel:manage:guest_star or moderator:read:guest_star or moderator:manage:guest_star
+    broadcaster_user_id: str
+    broadcaster_user_login: str
+    broadcaster_user_name: str
+    slot_count: int
+    is_moderator_send_live_enabled: bool
+    is_browser_source_audio_enabled: bool
+    group_layout: Literal["tiled", "screenshare"]
 
 
 AllPayloads = Union[
