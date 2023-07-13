@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union
 from enum import Enum
 
 from twitchio import PartialUser
-from twitchio.utils import parse_timestamp
+from twitchio.utils import parse_timestamp, copy_doc
 
 if TYPE_CHECKING:
     import datetime
@@ -39,7 +39,9 @@ if TYPE_CHECKING:
         ChannelCustomRewardRedemptionModify as ChannelCustomRewardRedemptionModifyPayload,
         ChannelCustomReward_global_cooldown as ChannelCustomReward_global_cooldownPayload,
         ChannelCustomRewardModify as ChannelCustomRewardModifyPayload,
-        ChannelCustomRewardRedemptionModify_Reward as ChannelCustomRewardRedemptionMody_RewardPayload,
+        ChannelCustomRewardRedemptionModify_Reward as ChannelCustomRewardRedemptionModify_RewardPayload,
+        ChannelShoutoutCreate as ChannelShoutoutCreatePayload,
+        ChannelShoutoutReceive as ChannelShoutoutReceivePayload,
         Images as ImagePayload,
         StreamOffline as StreamOfflinePayload,
         StreamOnline as StreamOnlinePayload,
@@ -66,6 +68,27 @@ __all__ = (
     "ChannelRaid",
     "ChannelModeratorAdd",
     "ChannelModeratorRemove",
+    "HypeTrainContributor",
+    "ChannelHypeTrainBegin",
+    "ChannelHypeTrainProgress",
+    "ChannelHypeTrainEnd",
+    "PollStatus",
+    "PollChoice",
+    "ChannelPollBegin",
+    "ChannelPollProgress",
+    "ChannelPollEnd",
+    "Predictor",
+    "PredictionOutcome",
+    "PredictionStatus",
+    "ChannelPredictionBegin",
+    "ChannelPredictionProgress",
+    "ChannelPredictionLock",
+    "ChannelPredictionEnd",
+    "ChannelCustomReward",
+    "ChannelCustomRewardAdd",
+    "ChannelCustomRewardUpdate",
+    "ChannelCustomRewardRemove",
+    "PartialReward",
     "StreamOnline",
     "StreamOffline",
     "UserAuthorizationGrant",
@@ -989,7 +1012,7 @@ class ChannelPollBegin(EventData):
         self.poll_id: str = payload["id"]
         self.title: str = payload["title"]
         self.choices = [PollChoice(c) for c in payload["choices"]]
-        self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"]
+        self.cost_per_vote: int = payload["channel_points_voting"]["amount_per_vote"] # bits voting is not a thing anymore, so this is the forced default
         self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
         self.ends_at: datetime.datetime = parse_timestamp(payload["ends_at"])
 
@@ -1312,7 +1335,14 @@ class ChannelPredictionEnd(EventData):
 
 class ChannelCustomReward_streamlimits:
     """
-    Indicates what redemption limits are applied to this reward per stream
+    Indicates what redemption limits are applied to this reward per stream.
+
+    Attributes
+    -----------
+    enabled: :class:`bool`
+        Are the limits enabled.
+    value: :class:`int`
+        The maximum amount of times this reward can be redeemed per stream.
     """
 
     __slots__ = ("enabled", "value")
@@ -1321,15 +1351,294 @@ class ChannelCustomReward_streamlimits:
         self.enabled: bool = payload["is_enabled"]
         self.value: int = payload["value"]
 
-
-class ChannelCustomRewardModify(EventData):
+class ChannelCustomReward_global_cooldown:
     """
-    A Custom Reward modification event.
+    Indicates what cooldowns are applied globally when a reward is redeemed.
+    
+    Attributes
+    -----------
+    enabled: :class:`bool`
+        Are the limits enabled.
+    seconds: :class:`int`
+        The cooldown after this reward is redeemed.
+    """
+    
+    __slots__ = ("enabled", "seconds")
+
+    def __init__(self, payload: ChannelCustomReward_global_cooldownPayload) -> None:
+        self.enabled: bool = payload["is_enabled"]
+        self.seconds: int = payload["seconds"]
+
+
+class ChannelCustomReward(EventData): # type: ignore
+    """
+    A Custom Reward event
 
     Attributes
     -----------
-
+    id: :class:`str`
+        The ID of the reward.
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel on which the reward was modified.
+    enabled: :class:`bool`
+        Whether the reward is enabled.
+    paused: :class:`bool`
+        Whether the reward redemptions are paused.
+    in_stock: :class:`bool`
+        Whether the reward is in stock.
+    title: :class:`str`
+        The title of the reward
+    cost: :class:`int`
+        How many channel points are required to redeem this custom reward.
+    prompt: :class:`str`
+        The prompt given to users when redeeming this reward.
+    user_input_required: :class:`bool`
+        Whether the user will input a message when redeeming this reward.
+    redemptions_skip_request_queue: :class:`bool`
+        Whether redemptions will bypass the redemption request queue.
+    cooldown_expires_at: :class:`datetime.datetime` | ``None``
+        When the cooldown will expire, if on cooldown.
+    amount_redeemed_current_stream: :class:`int` | ``None``
+        How many of this reward have been redeemed during the current stream. ``None`` when not live.
+    background_color: :class:`str`
+        The background colour of the reward to viewers.
+    max_per_stream: :class:`ChannelCustomReward_streamlimits`
+        The max amount of this reward that can be redeemed in a stream.
+    global_cooldown: :class:`ChannelCustomReward_global_cooldown`
+        The global cooldown configuration for this reward.
+    image: :class:`ImageLinks`
+        The image for this reward.
+    default_image: :class:`ImageLinks`
+        The default image for this reward.
     """
+
+    __slots__ = (
+        "id",
+        "broadcaster",
+        "enabled",
+        "paused",
+        "in_stock",
+        "title",
+        "cost",
+        "prompt",
+        "user_input_required",
+        "redemptions_skip_request_queue",
+        "cooldown_expires_at",
+        "amount_redeemed_current_stream",
+        "background_color",
+        "max_per_stream",
+        "max_per_user_per_stream",
+        "global_cooldown",
+        "image",
+        "default_image"
+    )
+
+    def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardModifyPayload) -> None:
+        self.id: str = payload["id"]
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.enabled: bool = payload["is_enabled"]
+        self.paused: bool = payload["is_paused"]
+        self.in_stock: bool = payload["is_in_stock"]
+        self.title: str = payload["title"]
+        self.cost: int = payload["cost"]
+        self.prompt: str = payload["prompt"]
+        self.user_input_required: bool = payload["is_user_input_required"]
+        self.redemptions_skip_request_queue: bool = payload["should_redemptions_skip_request_queue"]
+        self.cooldown_expires_at: datetime.datetime | None = parse_timestamp(payload["cooldown_expires_at"]) if payload["cooldown_expires_at"] else None
+        self.amount_redeemed_current_stream: int | None = payload["redemptions_redeemed_current_stream"]
+        self.background_color: str = payload["background_color"]
+        self.max_per_stream: ChannelCustomReward_streamlimits = ChannelCustomReward_streamlimits(payload["max_per_stream"])
+        self.global_cooldown: ChannelCustomReward_global_cooldown = ChannelCustomReward_global_cooldown(payload["global_cooldown"])
+        self.image: ImageLinks = ImageLinks(payload["image"])
+        self.default_image: ImageLinks = ImageLinks(payload["default_image"])
+
+@copy_doc(ChannelCustomReward)
+class ChannelCustomRewardAdd(ChannelCustomReward):
+    _dispatches_as = "channel_custom_reward_add"
+    _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
+    _version = 1
+    _event = "channel.channel_points_custom_reward.add"
+
+@copy_doc(ChannelCustomReward)
+class ChannelCustomRewardUpdate(ChannelCustomReward):
+    _dispatches_as = "channel_custom_reward_update"
+    _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
+    _version = 1
+    _event = "channel.channel_points_custom_reward.update"
+
+
+@copy_doc(ChannelCustomReward)
+class ChannelCustomRewardRemove(ChannelCustomReward):
+    _dispatches_as = "channel_custom_reward_remove"
+    _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
+    _version = 1
+    _event = "channel.channel_points_custom_reward.remove"
+
+
+class PartialReward:
+    """
+    A partial reward object, which provides limited information about the reward that was redeemed.
+
+    Attributes
+    -----------
+    id: :class:`str`
+        The ID of the reward.
+    title: :class:`str
+        The title of the reward.
+    cost: :class:`int`
+        The cost in channel points of the reward.
+    prompt: :class:`str`
+        The prompt the user received when redeeming the reward.
+    """
+
+    __slots__ = (
+        "id",
+        "title",
+        "cost",
+        "prompt"
+    )
+
+    def __init__(self, payload: ChannelCustomRewardRedemptionModify_RewardPayload) -> None:
+        self.id: str = payload["id"]
+        self.title: str = payload["title"]
+        self.cost: int = payload["cost"]
+        self.prompt: str = payload["prompt"]
+
+class ChannelCustomRewardRedemptionAdd(EventData):
+    """
+    A custom reward redemption creation/update event.
+
+    Attributes
+    -----------
+    id: :class:`str`
+        The ID of the redemption. Note that this is **not** the ID of the reward itself.
+    broadcaster: :class:`~twitchio.PartialUser`
+        The channel on which this reward was redeemed.
+    user: :class:`~twitchio.PartialUser`
+        The user that redeemed the reward.
+    user_input: :class:`str` | ``None``
+        The message the user wrote, if the reward requested one.
+    status: literal["unfilfilled", "fulfilled", "cancelled"]
+        The status of the redemption.
+    reward: :class:`ChannelCustomReward`
+        The reward that was redeemed.
+    redeemed_at: :class:`datetime.datetime`
+        When the reward was redeemed.
+    """
+
+    __slots__ = (
+        "id",
+        "broadcaster",
+        "user",
+        "user_input",
+        "status",
+        "reward",
+        "redeemed_at"
+    )
+
+    _dispatches_as = "channel_points_reward_redemption"
+    _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
+    _version = 1
+    _event = "channel.channel_points_custom_reward_redemption.add"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardRedemptionModifyPayload) -> None:
+        self.id: str = payload["id"]
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.user: PartialUser = _transform_user(transport, "user_", payload)
+        self.user_input: str = payload["user_input"]
+        self.status: Literal["unfulfilled", "fulfilled", "cancelled"] = payload["status"]
+        self.reward: PartialReward = PartialReward(payload["reward"])
+        self.redeemed_at = parse_timestamp(payload["redeemed_at"])
+
+
+@copy_doc(ChannelCustomRewardRedemptionAdd)
+class ChannelCustomRewardRedemptionUpdate(ChannelCustomRewardRedemptionAdd):
+    _dispatches_as = "channel_points_reward_redemption_update"
+    _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
+    _version = 1
+    _event = "channel.channel_points_custom_reward_redemption.update"
+
+
+class ChannelShoutoutCreate(EventData):
+    """
+    A shoutout create event. This is created when a shoutout is created, not received.
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The broadcaster from which the shoutout is coming.
+    moderator: :class:`~twitchio.PartialUser`
+        The moderator that created the shoutout.
+    target: :class:`~twitchio.PartialUser`
+        The person receiving the shoutout.
+    started_at: :class:`datetime.datetime`
+        When the shoutout started.
+    viewer_count: :class:`int`
+        How many viewers saw the shoutout.
+    cooldown_ends_at: :class:`datetime.datetime`
+        When another shoutout can happen.
+    target_cooldown_ends_at: :class:`datetime.datetime`
+        When the target can have another shoutout towards them.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "moderator",
+        "target",
+        "started_at",
+        "viewer_count",
+        "cooldown_ends_at",
+        "target_cooldown_ends_at"
+    )
+
+    _dispatches_as = "channel_shoutout_create"
+    _required_scopes = ("channel:read:shoutouts", "channel:manage:shoutouts")
+    _version = 1
+    _event = "channel.shoutout.create"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelShoutoutCreatePayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.moderator: PartialUser = _transform_user(transport, "moderator_", payload)
+        self.target: PartialUser = _transform_user(transport, "to_broadcaster_", payload)
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.viewer_count: int = payload["viewer_count"]
+        self.cooldown_ends_at: datetime.datetime = parse_timestamp(payload["cooldown_ends_at"])
+        self.target_cooldown_ends_at: datetime.datetime = parse_timestamp(payload["target_cooldown_ends_at"])
+
+
+class ChannelShoutoutRecieve(EventData):
+    """
+    A shoutout receive event. This is created when a shoutout is received, not created.
+
+    Attributes
+    -----------
+    broadcaster: :class:`~twitchio.PartialUser`
+        The broadcaster receiving the shoutout.
+    sender: :class:`~twitchio.PartialUser`
+        The person sending the shoutout.
+    started_at: :class:`datetime.datetime`
+        When the shoutout started.
+    viewer_count: :class:`int`
+        How many viewers saw the shoutout.
+    """
+
+    __slots__ = (
+        "broadcaster",
+        "sender",
+        "started_at",
+        "viewer_count"
+    )
+
+    _dispatches_as = "channel_shoutout_receive"
+    _required_scopes = ("channel:read:shoutouts", "channel:manage:shoutouts")
+    _version = 1
+    _event = "channel.shoutout.receive"
+
+    def __init__(self, transport: BaseTransport, payload: ChannelShoutoutCreatePayload) -> None:
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.sender: PartialUser = _transform_user(transport, "from_broadcaster_", payload)
+        self.started_at: datetime.datetime = parse_timestamp(payload["started_at"])
+        self.viewer_count: int = payload["viewer_count"]
 
 
 _event_map: dict[str, Type[EventData]] = {t._event: t for t in EventData.__subclasses__()}  # type: ignore
@@ -1364,4 +1673,11 @@ AllModels = Union[
     ChannelPredictionProgress,
     ChannelPredictionLock,
     ChannelPredictionEnd,
+    ChannelCustomRewardAdd,
+    ChannelCustomRewardUpdate,
+    ChannelCustomRewardRemove,
+    ChannelCustomRewardRedemptionAdd,
+    ChannelCustomRewardRedemptionUpdate,
+    ChannelShoutoutCreate,
+    ChannelShoutoutRecieve
 ]
