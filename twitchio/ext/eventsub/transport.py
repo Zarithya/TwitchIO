@@ -200,7 +200,7 @@ class WebhookTransport(BaseTransport):
             "POST",
             "eventsub/subscriptions",
             body=payload,
-            scope=topic._required_scopes and list(topic._required_scopes),
+            scope=topic._required_scopes,
         )
         return await self._http(route)
 
@@ -236,7 +236,7 @@ class WebsocketShard:
 
         self._connect_kwargs = connect_kwargs or {}
 
-    async def connect(self, reconnect_url: str | None = None) -> None:
+    async def connect(self, ignore_subscription: WebsocketSubscription | None, reconnect_url: str | None = None) -> None:
         if not self._subscriptions:
             return  # TODO: should this raise?
 
@@ -262,7 +262,8 @@ class WebsocketShard:
         self.task = asyncio.create_task(self.pump(), name=f"Pump-EventSub-{self.session_id}")
 
         for sub in self._subscriptions:
-            await self._subscribe(sub)
+            if sub != ignore_subscription:
+                await self._subscribe(sub)
 
     async def disconnect(self) -> None:
         logger.debug("Closing connection to session %s", self.session_id)
@@ -291,7 +292,7 @@ class WebsocketShard:
                 if isinstance(event, ReconnectEvent):
                     sock = self.socket
                     self.socket = None
-                    await self.connect(event.reconnect_url)
+                    await self.connect(None, event.reconnect_url)
                     await sock.close(code=aiohttp.WSCloseCode.GOING_AWAY, message=b"Reconnecting")
                     return
             
@@ -303,7 +304,7 @@ class WebsocketShard:
                 if self.socket and not self.socket.closed:
                     await self.socket.close(code=aiohttp.WSCloseCode.ABNORMAL_CLOSURE, message=b"Timeout reached")
 
-                await self.connect()
+                await self.connect(None)
                 return
 
             except Exception as e:
@@ -324,7 +325,7 @@ class WebsocketShard:
             "POST",
             "eventsub/subscriptions",
             body=payload,
-            scope=subscription.event._required_scopes and list(subscription.event._required_scopes),
+            scope=subscription.event._required_scopes,
             target=subscription.target,
         )
         resp = await self.transport._http(route)
@@ -356,7 +357,7 @@ class WebsocketShard:
         self._subscriptions.append(subscription)
 
         if not self.socket or self.socket.closed:
-            await self.connect()
+            await self.connect(ignore_subscription=subscription)
 
         return await self._subscribe(subscription)
 

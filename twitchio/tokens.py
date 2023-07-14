@@ -25,6 +25,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+import logging
 import aiohttp
 from typing_extensions import Self
 from yarl import URL
@@ -42,6 +43,7 @@ __all__ = ("BaseToken", "Token", "BaseTokenHandler", "SimpleTokenHandler", "IRCT
 VALIDATE_URL = URL("https://id.twitch.tv/oauth2/validate")
 REFRESH_URL = URL("https://id.twitch.tv/oauth2/refresh")
 
+logger = logging.getLogger(__name__)
 
 class BaseToken:
     """
@@ -187,6 +189,8 @@ class Token(BaseToken):
         if not client_id or not client_secret:
             raise RefreshFailure("Cannot refresh user tokens without a client ID and client secret present")
 
+        logger.debug("Refreshing token for %s", self._user)
+
         payload = {
             "client_id": client_id,
             "client_secret": client_secret,
@@ -224,6 +228,7 @@ class Token(BaseToken):
 
         async with session.get(VALIDATE_URL, headers={"Authorization": f"OAuth {self.access_token}"}) as resp:
             if resp.status == 401:
+                logger.debug("Token %s did not pass validation", self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...')
                 try:
                     await self.refresh(handler, session)
                 except Exception as e:
@@ -320,7 +325,7 @@ class BaseTokenHandler:
             def get_irc_token(self): # can be async
                 return twitchio.Token(os.getenv("IRC_TOKEN"))
             
-            async def get_user_token(self, user: twitchio.PartialUser, scopes: list[str]): # can be sync
+            async def get_user_token(self, user: twitchio.PartialUser, scopes: tuple[str]): # can be sync
                 user_id = user.id
                 if user_id not in self.user_tokens:
                     raise RuntimeError("User not found :(")
@@ -338,6 +343,19 @@ class BaseTokenHandler:
     def _post_init(self, client: Client) -> Self:
         self.client = client
         return self
+    
+    def _evict(self, token: Token) -> bool:
+        # evicts a token from the cache
+        user = token._user
+
+        if not user:
+            return False # cant be in cache if theres no user yet
+        
+        try:
+            self.__cache[user].remove(token)
+            return True
+        except:
+            return False
     
     async def _get_token_from_credentials(self) -> BaseToken | None:
         # this does not raise if no client secret is found, only if an http error occurs
@@ -357,7 +375,7 @@ class BaseTokenHandler:
             return BaseToken(data["access_token"])
 
     async def _client_get_user_token(
-        self, http: HTTPHandler, user: User | PartialUser, scope: list[str], *, no_cache: bool = False
+        self, http: HTTPHandler, user: User | PartialUser, scope: tuple[str], *, no_cache: bool = False
     ) -> Token:
         if not no_cache and user in self.__cache:
             if not self.__cache[user]:
@@ -465,7 +483,7 @@ class BaseTokenHandler:
         """
         raise NotImplementedError
     
-    async def get_user_token(self, user: User | PartialUser, scopes: list[str]) -> Token:
+    async def get_user_token(self, user: User | PartialUser, scopes: tuple[str]) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
         This function receives a user and a list of scopes that the request needs any one of to make the request.
@@ -479,7 +497,7 @@ class BaseTokenHandler:
         -----------
         user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
             The user that a token is expected for.
-        scopes: list[:class:`str`]
+        scopes: tuple[:class:`str`]
             A list of scopes that the endpoint needs one of. Any one or more of the scopes must be present on the returned token to successfully make the request
 
         Returns
@@ -522,7 +540,7 @@ class SimpleTokenHandler(BaseTokenHandler):
         self.client_id: str = client_id
         self.client_secret: str | None = client_secret
 
-    async def get_user_token(self, user: User | PartialUser, scope: str | None) -> Token:
+    async def get_user_token(self, user: User | PartialUser, scopes: tuple[str]) -> Token:
         return self.user_token
 
     async def get_client_token(self) -> BaseToken:
