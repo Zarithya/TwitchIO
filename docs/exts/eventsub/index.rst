@@ -12,9 +12,68 @@ If you're new to the ext, continue reading!
 
 .. _eventsub_subclass_ref:
 
-Getting started
-----------------
+A quick example
+-----------------
+This is an example of the ext in standalone mode:
 
+.. code:: python
+
+    import asyncio
+    import twitchio
+    from twitchio.ext import eventsub
+
+    class MyEventsubClient(eventsub.Client):
+        async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
+            print(f"Channel {event.data.broadcaster.name} has updated their channel! The title is: {event.data.title}")
+    
+    async def main():
+        token_handler = twitchio.SimpleTokenHandler("token", "client-id")
+        transport = eventsub.WebsocketTransport()
+        
+        eventsub_client = MyEventsubClient(transport, token_handler)
+
+        user = twitchio.DummyUser(id=123456789)
+        await eventsub_client.subscribe_channel_update(user)
+        
+        while True:
+            await asyncio.sleep(0)
+    
+    asyncio.run(main())
+
+
+Alternatively, it can be used alongside a Client from the core library:
+
+.. code:: python
+
+    import asyncio
+    import twitchio
+    from twitchio.ext import eventsub
+
+    class MyEventsubClient(eventsub.Client):
+        async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
+            print(f"EventsubClient listener: Channel {event.data.broadcaster.name} has updated their channel! The title is: {event.data.title}")
+    
+    async def main():
+        token_handler = twitchio.SimpleTokenHandler("token", "client-id")
+        my_client = twitchio.Client(token_handler, initial_channels=["cooldude"])
+        
+        @my_client.event
+        async def event_eventsub_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
+            print(f"Client Listener: Channel {event.data.broadcaster.name} has updated their channel! The title is: {event.data.title}")
+
+        transport = eventsub.WebsocketTransport()
+        eventsub_client = MyEventsubClient.from_client(my_client, transport)
+
+        user = my_client.get_partial_user(123456789, "cooldude")
+        await eventsub_client.subscribe_channel_update(user)
+        
+        await my_client.start()
+    
+    asyncio.run(main())
+
+
+A short tutorial
+-----------------
 Eventsub is the way to receive most live events from twitch. If you've used previous versions of Twitchio's eventsub implementation,
 you've probably been scarred by how janky and broken they've been. Some of you have also had to deal with the hassle of needing the events client-side,
 which wasn't really possible with the old implementations. If you haven't had to use the old versions, congratulations, you've avoided an awful experience!
@@ -174,3 +233,26 @@ This code will run forever, listening for channel updates.
 That's all for the intro/tutorial to standalone eventsub. For a more technical dive into things, keep reading below.
 
 .. _eventsub_transport:
+
+Transports
+-----------
+Twitch has designed eventsub has a transport-agnostic system, where you can receive the same data regardless of the transport layer.
+Currently, Twitch only has two available transports, ``websockets`` and ``webhooks``. Each come with their own advantages and caveats,
+so let's go over them.
+
+Websockets
++++++++++++
+Websockets allow you to receive data through websocket sessions (surprise!). The subscriptions you create will only last as long as the websocket,
+which means that they need to be recreated if the websocket gets closed for whatever reason. TwitchIO will handle recreating them for you,
+however if your tokens have expired you'll need to regenerate them before you can recreate the subscriptions.
+Additionally, websockets only allow one user per socket. The library will handle this for you, however it means that these cannot be used to handle
+many users concurrently. If you need to handle many users, you'll need to use the webhook transport.
+
+Webhooks
++++++++++
+Webhooks allow you to receive data from all your users in one place, so that you can handle it all on your server.
+This is achieved by running a small website in your bot that can receive and validate data when twitch sends it.
+Twitch requires you to have a valid SSL certificate (e.g. your site needs to be https), and TwitchIO does not handle SSL.
+As such, you'll need to use a reverse proxy such as NGINX or Caddy to handle SSL, and forward requests to your TwitchIO system.
+You do not need user tokens for webhooks, however you will need a client token (generated with a client id and client secret).
+
