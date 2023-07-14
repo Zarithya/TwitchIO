@@ -47,7 +47,8 @@ extensions = [
     "sphinxcontrib.asyncio",
     "sphinx.ext.intersphinx",
     "attributetable",
-    "sphinxext.opengraph"
+    "sphinxext.opengraph",
+    "sphinx.ext.napoleon"
 ]
 
 # OpenGraph Meta Tags
@@ -92,11 +93,6 @@ html_static_path = ["_static"]
 # or fully qualified paths (eg. https://...)
 html_css_files = ["styles/furo.css"]
 html_js_files = ["js/custom.js"]
-
-if on_rtd:
-    extensions.append("sphinxcontrib.napoleon")
-else:
-    extensions.append("sphinx.ext.napoleon")
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
