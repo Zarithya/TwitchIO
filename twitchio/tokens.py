@@ -525,8 +525,8 @@ class SimpleTokenHandler(BaseTokenHandler):
     async def get_user_token(self, user: User | PartialUser, scope: str | None) -> Token:
         return self.user_token
 
-    async def get_client_token(self) -> str:
-        return self.client_token or self.user_token.access_token
+    async def get_client_token(self) -> BaseToken:
+        return BaseToken(self.client_token) if self.client_token else BaseToken(self.user_token.access_token)
 
     async def get_client_credentials(self) -> tuple[str, str | None]:
         return self.client_id, self.client_secret

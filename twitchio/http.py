@@ -218,7 +218,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     async def _get_token_from_route(self, route: Route, *, no_cache: bool = False) -> BaseToken:
         token: BaseToken
         if route.target:
-            logger.debug("Fetching user token for %s with scope %s")
+            logger.debug("Fetching user token for %s with scope %s", route.target, route.scope)
             token = await self.token_handler._client_get_user_token(self, route.target, route.scope, no_cache=no_cache)
 
         elif route.scope:
@@ -292,8 +292,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                             "Received unknown response code %i from route %s %s",
                             response.status,
                             route.method,
-                            url,
-                            route.body,
+                            url
                         )
                         await bucket.release()
                         raise HTTPResponseException(response, data)  # type: ignore

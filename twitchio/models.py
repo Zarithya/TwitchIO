@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 
 __all__ = (
+    "DummyUser",
     "PartialUser",
     "BitLeaderboardUser",
     "UserBan",
@@ -95,9 +96,26 @@ class ActiveExtensionType(TypedDict):
     component: dict[int, ActiveExtension]
 
 
-class PartialUser:
+class DummyUser:
+    """
+    A barebones representation of a user. This doesn't have much use outside of being passed to methods that require a user object that simply contains an ID.
+
+    Attributes
+    -----------
+    id: :class:`int`
+        The ID of the user.
+    """
+
+    __slots__ = ("id",)
+
+    def __init__(self, id: int | str) -> None:
+        self.id: int = int(id)
+
+
+class PartialUser(DummyUser):
     """
     A minimal representation of a user on twitch.
+    This class allows you to perform operations using the Twitch API, targeting channels and users.
 
     Attributes
     -----------

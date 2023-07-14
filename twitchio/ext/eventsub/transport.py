@@ -222,7 +222,7 @@ class WebsocketSubscription:
 
 
 class WebsocketShard:
-    URL = "wss://eventsub-beta.wss.twitch.tv/ws"
+    URL = "wss://eventsub.wss.twitch.tv/ws"
 
     def __init__(self, transport: WebsocketTransport, user_id: int, connect_kwargs: dict[Any, Any] | None) -> None:
         self.transport: WebsocketTransport = transport
@@ -265,6 +265,8 @@ class WebsocketShard:
             await self._subscribe(sub)
 
     async def disconnect(self) -> None:
+        logger.debug("Closing connection to session %s", self.session_id)
+
         if self.socket and not self.socket.closed:
             await self.socket.close(code=aiohttp.WSCloseCode.GOING_AWAY, message=b"Disconnecting")
 
@@ -292,6 +294,9 @@ class WebsocketShard:
                     await self.connect(event.reconnect_url)
                     await sock.close(code=aiohttp.WSCloseCode.GOING_AWAY, message=b"Reconnecting")
                     return
+            
+            except TypeError: # happens when we get sent a null frame after getting disconnected
+                return
 
             except asyncio.TimeoutError:
                 logger.warning("Socket timeout for eventsub session %s, reconnecting", self.session_id)

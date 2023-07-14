@@ -42,9 +42,6 @@ from .shards import ShardInfo
 from .tokens import BaseTokenHandler
 from .websocket import Websocket
 
-if TYPE_CHECKING:
-    from ext.eventsub import EventSubClient
-
 _initial_channels_T = list[str] | tuple[str] | Callable[[], list[str]] | Coroutine[Any, Any, None] | None
 
 __all__ = ("Client",)
@@ -86,7 +83,6 @@ class Client:
         initial_channels: _initial_channels_T = None,
         shard_limit: int = 100,
         cache_size: int | None = None,
-        eventsub: EventSubClient | None = None,
         **kwargs,
     ):
         self._token_handler: BaseTokenHandler = token_handler._post_init(self)
@@ -102,12 +98,6 @@ class Client:
 
         self._limiter = IRCRateLimiter(status="verified" if verified else "user", bucket="joins")
         self._http = HTTPHandler(None, self._token_handler, client=self, **kwargs)
-
-        self._eventsub: EventSubClient | None = None
-        if eventsub:
-            self._eventsub = eventsub
-            self._eventsub._client = self
-            self._eventsub._client_ready.set()
 
         self.loop: asyncio.AbstractEventLoop | None = None
         self._kwargs: dict[str, Any] = kwargs
@@ -177,21 +167,13 @@ class Client:
 
             If you want to take more control over cleanup, see :meth:`close`.
         """
-        self.loop = asyncio.get_event_loop()
-        self.loop.run_until_complete(self._shard())
-
-        for shard in self._shards.values():
-            self.loop.create_task(shard._websocket._connect())
-
-        if self._eventsub:
-            self.loop.create_task(self._eventsub._run())  # TODO: Cleanup...
-
-        try:
-            self.loop.run_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.loop.run_until_complete(self.close())
+        async def _runner():
+            try:
+                await self.start()
+            except KeyboardInterrupt:
+                await self.close()
+        
+        asyncio.run(_runner())
 
     async def start(self) -> None:
         """|coro|
@@ -203,6 +185,7 @@ class Client:
                 "You must first enter an async context by calling `async with client:`"
             )  # TODO need better error
 
+        await self.setup()
         await self._shard()
 
         shard_tasks = [asyncio.create_task(shard._websocket._connect()) for shard in self._shards.values()]
@@ -283,6 +266,20 @@ class Client:
                 break
 
         return message
+
+    def get_partial_user(self, user_id: int | str, user_name: str | None) -> PartialUser:
+        """
+        Creates a PartialUser with the provided user_id and user_name.
+        
+        Parameters
+        -----------
+        user_id: :class:`int` | :class:`str`
+            The numeric ID of the user.
+        user_name: :class:`str`
+            The name of the user.
+        """
+
+        return PartialUser(self._http, user_id, user_name)
 
     async def fetch_users(
         self, names: list[str] | None = None, ids: list[int] | None = None, target: PartialUser | None = None

@@ -31,8 +31,9 @@ from typing_extensions import Self
 from twitchio import Client as _BaseClient, PartialUser, utils
 from twitchio.http import HTTPHandler, Route, TokenHandlerT
 
+from . import models
+
 if TYPE_CHECKING:
-    from . import models
     from .events import BaseEvent, ChallengeEvent, NotificationEvent, RevocationEvent
     from .transport import BaseTransport
     from .types.payloads import HTTPSubscribeResponse
@@ -123,8 +124,15 @@ class Client(Generic[TokenHandlerT]):
     async def stop(self) -> None:
         """
         Stops the Eventsub Client, which tells the underlying transport to stop listening for events, and clean up after itself.
+        
+        .. note::
+            The client cannot be restarted once it has been stopped.
+        
         """
         await self._transport.stop()
+
+        if not self._core_client:
+            await self._http.cleanup()
 
     async def _request(self, route: Route) -> Any:
         return await self._http.request(route)
