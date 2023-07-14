@@ -114,7 +114,7 @@ class Client(Generic[TokenHandlerT]):
 
     async def start(self) -> None:
         """
-        Startes the Eventsub Client, which will initialize the underlying transport and subscribe/listen to events.
+        Starts the Eventsub Client, which will initialize the underlying transport and subscribe/listen to events.
         """
         if not self._http._prepared:
             await self._http.prepare()
