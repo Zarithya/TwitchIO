@@ -35,7 +35,7 @@ from yarl import URL
 
 from .exceptions import HTTPException, HTTPResponseException, Unauthorized
 from .limiter import HTTPRateLimiter, RateLimitBucket
-from .tokens import BaseToken, BaseTokenHandler
+from .tokens import BaseToken, BaseTokenHandler, Token
 from .utils import MISSING, json_dumper, json_loader
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ class Route:
         route: str,
         body: bodyType,
         ratelimit_tokens: int = 1,
-        scope: list[str] | None = None,
+        scope: tuple[str] | None = None,
         parameters: list[tuple[str, str | None]] | None = None,
         target: UserType | None = None,
     ) -> None:
@@ -72,7 +72,7 @@ class Route:
         self.method: methodType = method
         self.target: UserType | None = target
         self.headers = headers = {}
-        self.scope: list[str] = scope or []
+        self.scope: tuple[str] = scope or tuple()
         self.ratelimit_tokens: int = ratelimit_tokens
 
         if isinstance(body, dict):
@@ -235,7 +235,10 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         is_fresh_token = False
 
         raw_token = await token.get(self, self.token_handler, cast(aiohttp.ClientSession, self._session))
+
         headers = {"Authorization": f"Bearer {raw_token}", "Client-ID": client_id}
+        headers.update(route.headers)
+
         bucket: RateLimitBucket = self.buckets.get_bucket(route.target)
 
         await bucket.acquire()
@@ -245,11 +248,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             await self.prepare()
 
         url = route.url
+
         try:
             for attempt in range(5):
-                logger.debug("Sending request to %s %s with payload %s", route.method, url, route.body)
+                logger.debug("Sending request attempt %s to %s %s with payload %s", attempt, route.method, url, route.body)
                 async with cast(aiohttp.ClientSession, self._session).request(
-                    route.method, url, headers=headers
+                    route.method, url, headers=headers, data=route.body
                 ) as response:
                     _data: str = await response.text("utf-8")
                     data: str | BasePayload
@@ -274,8 +278,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                         continue
 
                     elif response.status == 401:
-                        logger.info("Received Unauthorized response from %s %s . Attempting to get a fresh token")
+                        logger.info("Received Unauthorized response from %s.", route.url.path)
                         if not is_fresh_token:
+                            if isinstance(token, Token):
+                                self.token_handler._evict(token)
+                            
+                            logger.debug("Attempting to get a fresh token for target %s on route %s", route.target, route.url.path)
                             token = await self._get_token_from_route(route, no_cache=True)
                             raw_token = await token.get(
                                 self, self.token_handler, cast(aiohttp.ClientSession, self._session)
@@ -324,7 +332,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "channels/commercial",
                 body={"broadcaster_id": broadcaster_id, "length": length},
                 target=target,
-                scope=["channel:edit:commercial"],
+                scope=("channel:edit:commercial",),
             )
         )
         data = data["data"][0]
@@ -367,7 +375,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             ("user_id", str(user_id) if user_id else None),
         ]
 
-        route = Route("GET", "bits/leaderboard", "", parameters=parameters, target=target, scope=["bits:read"])
+        route = Route("GET", "bits/leaderboard", "", parameters=parameters, target=target, scope=("bits:read",))
         return await self.request(route)
 
     def get_cheermotes(self, broadcaster_id: str | None = None, target: PartialUser | None = None):
@@ -533,7 +541,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.append(("prediction_id", prediction_id))
 
         return self.request_paginated_route(
-            Route("GET", "predictions", None, parameters=params, target=target, scope=["channel:manage:predictions"])
+            Route("GET", "predictions", None, parameters=params, target=target, scope=("channel:manage:predictions",))
         )
 
     def patch_prediction(
@@ -554,7 +562,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             body["winning_outcome_id"] = cast(str, winning_outcome_id)
 
         return self.request(
-            Route("PATCH", "predictions", body=body, target=target, scope=["channel:manage:prediction"])
+            Route("PATCH", "predictions", body=body, target=target, scope=("channel:manage:prediction",))
         )
 
     def post_prediction(
@@ -580,7 +588,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             ],
         }
         return self.request(
-            Route("POST", "predictions", body=body, target=target, scope=["channel:manage:predictions"])
+            Route("POST", "predictions", body=body, target=target, scope=("channel:manage:predictions",))
         )
 
     def post_create_clip(self, target: PartialUser, broadcaster_id: int, has_delay=False) -> Any:
@@ -591,7 +599,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 None,
                 parameters=[("broadcaster_id", str(broadcaster_id)), ("has_delay", str(has_delay).lower())],
                 target=target,
-                scope=["clips:edit"],
+                scope=("clips:edit",),
             )
         )
 
@@ -696,7 +704,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.extend(("user_id", str(id)) for id in user_ids)
 
         return self.request_paginated_route(
-            Route("GET", "moderation/banned/events", None, parameters=params, target=target, scope=["moderation:read"])
+            Route("GET", "moderation/banned/events", None, parameters=params, target=target, scope=("moderation:read",))
         )
 
     def get_channel_bans(
@@ -707,7 +715,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.extend(("user_id", str(id)) for id in user_ids)
 
         return self.request_paginated_route(
-            Route("GET", "moderation/banned", None, parameters=params, target=target, scope=["moderation:read"])
+            Route("GET", "moderation/banned", None, parameters=params, target=target, scope=("moderation:read",))
         )
 
     def get_channel_moderators(
@@ -718,7 +726,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.extend(("user_id", str(id)) for id in user_ids)
 
         return self.request_paginated_route(
-            Route("GET", "moderation/moderators", None, parameters=params, target=target, scope=["moderation:read"])
+            Route("GET", "moderation/moderators", None, parameters=params, target=target, scope=("moderation:read",))
         )
 
     def get_channel_mod_events(
@@ -730,7 +738,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(
             Route(
-                "GET", "moderation/moderators/events", None, parameters=params, target=target, scope=["moderation:read"]
+                "GET", "moderation/moderators/events", None, parameters=params, target=target, scope=("moderation:read",)
             )
         )
 
@@ -755,7 +763,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "streams/key",
                 None,
                 parameters=[("broadcaster_id", broadcaster_id)],
-                scope=["channel:read:stream_key"],
+                scope=("channel:read:stream_key",),
                 target=target,
             )
         )
@@ -789,7 +797,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "POST",
                 "streams/markers",
                 body={"user_id": user_id, "description": description},
-                scope=["user:edit:broadcast"],
+                scope=("user:edit:broadcast",),
                 target=target,
             )
         )
@@ -801,7 +809,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "streams/markers",
                 None,
                 parameters=[x for x in [("user_id", user_id), ("video_id", video_id)] if x[1] is not None],
-                scope=["user:edit:broadcast"],
+                scope=("user:edit:broadcast",),
                 target=target,
             )
         )
@@ -841,7 +849,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 parameters=[("broadcaster_id", broadcaster_id)],
                 body=body,
                 target=target,
-                scope=["channel:manage:broadcast"],
+                scope=("channel:manage:broadcast",),
             )
         )
 
@@ -910,7 +918,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 parameters=[("broadcaster_id", broadcaster_id)],
                 body={"tag_ids": tag_ids},
                 target=target,
-                scope=["user:edit:broadcast"],
+                scope=("user:edit:broadcast",),
             )
         )
 
@@ -921,7 +929,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "users/follows",
                 None,
                 parameters=[("from_id", from_id), ("to_id", to_id), ("allow_notifications", str(notifications))],
-                scope=["user:edit:follows"],
+                scope=("user:edit:follows",),
                 target=target,
             )
         )
@@ -933,7 +941,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "users/follows",
                 None,
                 parameters=[("from_id", from_id), ("to_id", to_id)],
-                scope=["user:edit:follows"],
+                scope=("user:edit:follows",),
                 target=target,
             )
         )
@@ -976,7 +984,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "users/extensions",
                 None,
                 parameters=[("user_id", user_id)],
-                scope=["user:read:broadcast"],
+                scope=("user:read:broadcast",),
                 target=target,
             )
         )
