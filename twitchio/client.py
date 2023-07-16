@@ -167,12 +167,13 @@ class Client:
 
             If you want to take more control over cleanup, see :meth:`close`.
         """
+
         async def _runner():
             try:
                 await self.start()
             except KeyboardInterrupt:
                 await self.close()
-        
+
         asyncio.run(_runner())
 
     async def start(self) -> None:
@@ -270,7 +271,7 @@ class Client:
     def get_partial_user(self, user_id: int | str, user_name: str | None) -> PartialUser:
         """
         Creates a PartialUser with the provided user_id and user_name.
-        
+
         Parameters
         -----------
         user_id: :class:`int` | :class:`str`
@@ -713,6 +714,25 @@ class Client:
         """
         data = await self._http.get_global_chat_badges()
         return [ChatBadge(x) for x in data["data"]]
+
+    async def fetch_content_classification_labels(self, locale: str | None = None):
+        """|coro|
+
+        Fetches information about Twitch content classification labels.
+
+        Parameters
+        -----------
+        locale: Optional[:class:`str`]
+            Locale for the Content Classification Labels.
+            You may specify a maximum of 1 locale. Default: “en-US”
+
+        Returns
+        --------
+        List[:class:`twitchio.ContentClassificationLabel`]
+        """
+        locale = "en-US" if locale is None else locale
+        data = await self._http.get_content_classification_labels(locale)
+        return [ContentClassificationLabel(x) for x in data]
 
     async def event_shard_ready(self, number: int) -> None:
         """|coro|

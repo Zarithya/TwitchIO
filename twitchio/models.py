@@ -87,6 +87,7 @@ __all__ = (
     "Raid",
     "ChatBadge",
     "ChatBadgeVersions",
+    "ContentClassificationLabel",
 )
 
 
@@ -745,8 +746,14 @@ class PartialUser(DummyUser):
         )
         return Prediction(self._http, data[0])
 
-    async def modify_stream(
-        self, token: str, game_id: int | None = None, language: str | None = None, title: str | None = None
+    async def modify_channel(
+        self,
+        token: str,
+        game_id: int | None = None,
+        language: str | None = None,
+        title: str | None = None,
+        content_classification_labels: list[dict[str, str | bool]] | None = None,
+        is_branded_content: bool | None = None,
     ):
         """|coro|
 
@@ -760,6 +767,18 @@ class PartialUser(DummyUser):
             Optional language of the channel. A language value must be either the ISO 639-1 two-letter code for a supported stream language or “other”.
         title: :class:`str`
             Optional title of the stream.
+        content_classification_labels: List[Dict[:class:`str`, Union[:class:`str`, :class:`bool`]]]
+            List of labels that should be set as the Channel's CCLs.
+        is_branded_content: :class:`bool`
+            Boolean flag indicating if the channel has branded content.
+
+                .. note::
+
+                    Example of a content classification labels
+                    .. code:: py
+
+                        ccl = [{"id": "Gambling", "is_enabled": False}, {"id": "DrugsIntoxication", "is_enabled": False}]
+                        await my_partial_user.modify_stream(token="abcd", content_classification_labels=ccl)
         """
         gid = str(game_id) if game_id is not None else None
         await self._http.patch_channel(
@@ -768,6 +787,8 @@ class PartialUser(DummyUser):
             game_id=gid,
             language=language,
             title=title,
+            content_classification_labels=content_classification_labels,
+            is_branded_content=is_branded_content,
         )
 
     async def fetch_schedule(
@@ -1974,9 +1995,22 @@ class ChannelInfo:
         Language of the channel.
     delay: :class:`int`
         Stream delay in seconds.
+    content_classification_labels: list[:class:`str`]
+        The CCLs applied to the channel.
+    is_branded_content: :class:`bool`
+        Boolean flag indicating if the channel has branded content.
     """
 
-    __slots__ = ("user", "game_id", "game_name", "title", "language", "delay")
+    __slots__ = (
+        "user",
+        "game_id",
+        "game_name",
+        "title",
+        "language",
+        "delay",
+        "content_classification_labels",
+        "is_branded_content",
+    )
 
     def __init__(self, http: HTTPHandler, data: dict) -> None:
         self.user: PartialUser = PartialUser(http, data["broadcaster_id"], data["broadcaster_name"])
@@ -1985,6 +2019,8 @@ class ChannelInfo:
         self.title: str = data["title"]
         self.language: str = data["broadcaster_language"]
         self.delay: int = data["delay"]
+        self.content_classification_labels: list[str] = data["content_classification_labels"]
+        self.is_branded_content: bool = data["is_branded_content"]
 
     def __repr__(self) -> str:
         return f"<ChannelInfo user={self.user} game_id={self.game_id} game_name={self.game_name} title={self.title} language={self.language} delay={self.delay}>"
@@ -2661,3 +2697,28 @@ class ChatBadgeVersions:
 
     def __repr__(self):
         return f"<ChatBadgeVersions id={self.id} title={self.title}>"
+
+
+class ContentClassificationLabel:
+    """
+    Represents a Content Classification Label.
+
+    Attributes
+    -----------
+    id: :class:`str`
+        Unique identifier for the CCL.
+    description: :class:`str`
+        Localized description of the CCL.
+    name: :class:`str`
+        Localized name of the CCL.
+    """
+
+    __slots__ = ("id", "description", "name")
+
+    def __init__(self, data: dict):
+        self.id: str = data["id"]
+        self.description: str = data["description"]
+        self.name: str = data["name"]
+
+    def __repr__(self):
+        return f"<ContentClassificationLabel id={self.id}>"

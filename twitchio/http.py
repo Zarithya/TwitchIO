@@ -251,7 +251,9 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         try:
             for attempt in range(5):
-                logger.debug("Sending request attempt %s to %s %s with payload %s", attempt, route.method, url, route.body)
+                logger.debug(
+                    "Sending request attempt %s to %s %s with payload %s", attempt, route.method, url, route.body
+                )
                 async with cast(aiohttp.ClientSession, self._session).request(
                     route.method, url, headers=headers, data=route.body
                 ) as response:
@@ -282,8 +284,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                         if not is_fresh_token:
                             if isinstance(token, Token):
                                 self.token_handler._evict(token)
-                            
-                            logger.debug("Attempting to get a fresh token for target %s on route %s", route.target, route.url.path)
+
+                            logger.debug(
+                                "Attempting to get a fresh token for target %s on route %s",
+                                route.target,
+                                route.url.path,
+                            )
                             token = await self._get_token_from_route(route, no_cache=True)
                             raw_token = await token.get(
                                 self, self.token_handler, cast(aiohttp.ClientSession, self._session)
@@ -297,10 +303,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
                     else:
                         logger.debug(
-                            "Received unknown response code %i from route %s %s",
-                            response.status,
-                            route.method,
-                            url
+                            "Received unknown response code %i from route %s %s", response.status, route.method, url
                         )
                         await bucket.release()
                         raise HTTPResponseException(response, data)  # type: ignore
@@ -738,7 +741,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(
             Route(
-                "GET", "moderation/moderators/events", None, parameters=params, target=target, scope=("moderation:read",)
+                "GET",
+                "moderation/moderators/events",
+                None,
+                parameters=params,
+                target=target,
+                scope=("moderation:read",),
             )
         )
 
@@ -834,13 +842,24 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         game_id: str | None = None,
         language: str | None = None,
         title: str | None = None,
+        content_classification_labels: list[dict[str, str | bool]] | None = None,
+        is_branded_content: bool | None = None,
     ) -> Any:
-        assert any((game_id, language, title))
-        body = {
+        assert any((game_id, language, title, content_classification_labels, is_branded_content))
+
+        body: dict[str, str | bool | list[dict[str, str | bool]]] = {
             k: v
-            for k, v in {"game_id": game_id, "broadcaster_language": language, "title": title}.items()
+            for k, v in {
+                "game_id": game_id,
+                "broadcaster_language": language,
+                "title": title,
+                "is_branded_content": is_branded_content,
+            }.items()
             if v is not None
         }
+
+        if content_classification_labels is not None:
+            body["content_classification_labels"] = content_classification_labels
 
         return self.request(
             Route(
@@ -1301,3 +1320,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     async def get_channel_chat_badges(self, broadcaster_id: str) -> Any:
         params: ParameterType = [("broadcaster_id", broadcaster_id)]
         return await self.request(Route("GET", "chat/badges", None, parameters=params))
+
+    async def get_content_classification_labels(self, locale: str) -> Any:
+        params: ParameterType = [("locale", locale)]
+        return await self.request(Route("GET", "content_classification_labels", None, parameters=params))

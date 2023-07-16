@@ -1558,7 +1558,7 @@ class ChannelCustomRewardRedemptionUpdate(EventData):
     _required_scopes = ("channel:read:redemptions", "channel:manage:redemptions")
     _version = 1
     _event = "channel.channel_points_custom_reward_redemption.update"
-    
+
     def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardRedemptionModifyPayload) -> None:
         self.id: str = payload["id"]
         self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
@@ -1567,6 +1567,7 @@ class ChannelCustomRewardRedemptionUpdate(EventData):
         self.status: Literal["unfulfilled", "fulfilled", "cancelled"] = payload["status"]
         self.reward: PartialReward = PartialReward(payload["reward"])
         self.redeemed_at = parse_timestamp(payload["redeemed_at"])
+
 
 class ChannelShoutoutCreate(EventData):
     """

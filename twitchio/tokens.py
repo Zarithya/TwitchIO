@@ -45,6 +45,7 @@ REFRESH_URL = URL("https://id.twitch.tv/oauth2/refresh")
 
 logger = logging.getLogger(__name__)
 
+
 class BaseToken:
     """
     A base token container.
@@ -56,11 +57,11 @@ class BaseToken:
         .. describe:: x == y
 
             Checks if the token is equal to another.
-        
+
         .. describe:: x != y
 
             Checks if the token is not equal to another.
-        
+
         .. describe:: str(x)
 
             Returns the token.
@@ -81,16 +82,18 @@ class BaseToken:
 
     def __init__(self, access_token: str) -> None:
         self.access_token: str = access_token
-    
+
     def __eq__(self, other: object) -> bool:
-        return (isinstance(other, BaseToken) and other.access_token == self.access_token) or (isinstance(other, str) and other == self.access_token)
-    
+        return (isinstance(other, BaseToken) and other.access_token == self.access_token) or (
+            isinstance(other, str) and other == self.access_token
+        )
+
     def __hash__(self) -> int:
         return hash(self.access_token)
 
     def __str__(self) -> str:
         return self.access_token
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'}>"
 
@@ -130,11 +133,11 @@ class Token(BaseToken):
         .. describe:: x == y
 
             Checks if the token is equal to another.
-        
+
         .. describe:: x != y
 
             Checks if the token is not equal to another.
-        
+
         .. describe:: str(x)
 
             Returns the token.
@@ -160,10 +163,12 @@ class Token(BaseToken):
         self._user: PartialUser | None = None
         self._scopes: list[str] = []
         self._last_validation: float | None = None
-    
+
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} user={self._user} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} " \
+        return (
+            f"<{self.__class__.__name__} user={self._user} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} "
             f"refresh_token={self.refresh_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} scopes={self._scopes}>"
+        )
 
     async def refresh(self, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> None:
         """|coro|
@@ -228,7 +233,10 @@ class Token(BaseToken):
 
         async with session.get(VALIDATE_URL, headers={"Authorization": f"OAuth {self.access_token}"}) as resp:
             if resp.status == 401:
-                logger.debug("Token %s did not pass validation", self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...')
+                logger.debug(
+                    "Token %s did not pass validation",
+                    self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else "...",
+                )
                 try:
                     await self.refresh(handler, session)
                 except Exception as e:
@@ -293,7 +301,7 @@ class Token(BaseToken):
 class BaseTokenHandler:
     """
     A base class to manage user tokens.
-    
+
     This class is designed to be subclassed.
     The library will aggressively cache user tokens, and will only call your code when a token cannot be found in the cache.
 
@@ -304,35 +312,36 @@ class BaseTokenHandler:
         import os
         import json
         import twitchio
-        
+
         class MyTokenHandler(twitchio.BaseTokenHandler):
             def __init__(self):
                 # While we recommend storing tokens in an actual database, this will suffice for the example.
                 # A JSON file will suffice fine for a personal bot, however if you wish to expand to support more users,
                 # using a JSON file is an extremely bad idea.
 
-                # This example JSON file stores tokens in a dict of user_id: [token, refresh_token]. It does not take scopes into account, 
-                # which you should probably do. 
+                # This example JSON file stores tokens in a dict of user_id: [token, refresh_token]. It does not take scopes into account,
+                # which you should probably do.
 
                 with open("tokens.json") as file:
                     self.user_tokens = json.load(file)
-                
+
                 super().__init__()
-                
+
             def get_client_credentials(self): # can be async
                 return os.getenv("CLIENT_ID"), os.getenv("CLIENT_SECRET")
-            
+
             def get_irc_token(self): # can be async
                 return twitchio.Token(os.getenv("IRC_TOKEN"))
-            
+
             async def get_user_token(self, user: twitchio.PartialUser, scopes: tuple[str]): # can be sync
                 user_id = user.id
                 if user_id not in self.user_tokens:
                     raise RuntimeError("User not found :(")
-                
+
                 tokens = self.user_tokens[user_id]
                 return twitchio.Token(tokens[0], refresh_token=tokens[1])
     """
+
     client: Client
 
     __oauth_url__ = "https://id.twitch.tv/oauth2/token"
@@ -343,34 +352,30 @@ class BaseTokenHandler:
     def _post_init(self, client: Client) -> Self:
         self.client = client
         return self
-    
+
     def _evict(self, token: Token) -> bool:
         # evicts a token from the cache
         user = token._user
 
         if not user:
-            return False # cant be in cache if theres no user yet
-        
+            return False  # cant be in cache if theres no user yet
+
         try:
             self.__cache[user].remove(token)
             return True
         except:
             return False
-    
+
     async def _get_token_from_credentials(self) -> BaseToken | None:
         # this does not raise if no client secret is found, only if an http error occurs
         client_id, client_secret = await maybe_coro(self.get_client_credentials)
 
         if not (client_id and client_secret):
             return None
-        
-        query = {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "grant_type": "client_credentials"
-        }
-        async with self.client._http._session.post(URL(self.__oauth_url__).with_query(query)) as resp: # type: ignore
-            resp.raise_for_status() # this may hard crash, but thats intentional, as this indicates a failure to acquire the proper tokens
+
+        query = {"client_id": client_id, "client_secret": client_secret, "grant_type": "client_credentials"}
+        async with self.client._http._session.post(URL(self.__oauth_url__).with_query(query)) as resp:  # type: ignore
+            resp.raise_for_status()  # this may hard crash, but thats intentional, as this indicates a failure to acquire the proper tokens
             data = await resp.json(loads=json_loader)
             return BaseToken(data["access_token"])
 
@@ -411,15 +416,17 @@ class BaseTokenHandler:
         except Exception as e:
             # TODO fire error handlers
             raise
-        
+
         if t:
             return t
-        
+
         token = await self._get_token_from_credentials()
 
         if not token:
-            raise NoTokenAvailable(f"No token was returned from {self.__class__.__name__}.get_client_token, and one could not be generated.")
-                
+            raise NoTokenAvailable(
+                f"No token was returned from {self.__class__.__name__}.get_client_token, and one could not be generated."
+            )
+
         return token
 
     async def _client_get_irc_login(self, client: Client, shard_id: int) -> tuple[str, PartialUser]:
@@ -439,17 +446,17 @@ class BaseTokenHandler:
             )
 
         return resp, token._user  # type: ignore
-        
+
     async def get_client_token(self) -> BaseToken:
         """|maybecoro|
         Method to be overriden in a subclass.
         This should return a client token (generated with client id and client secret). If not implemented,
         the library will attempt to generate one with the credentials returned from :meth:`~.get_client_credentials`.
-        
+
         .. warning::
 
             If the library is unable to fetch any client token, it will hard crash.
-        
+
         Returns
         --------
         :class:`BaseToken`
@@ -482,7 +489,7 @@ class BaseTokenHandler:
             The token with which to connect
         """
         raise NotImplementedError
-    
+
     async def get_user_token(self, user: User | PartialUser, scopes: tuple[str]) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
