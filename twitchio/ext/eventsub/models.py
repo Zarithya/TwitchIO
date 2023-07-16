@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union
 from enum import Enum
+from typing import TYPE_CHECKING, Any, Literal, Mapping, Protocol, Type, Union
 
 from twitchio import PartialUser
-from twitchio.utils import parse_timestamp, copy_doc
+from twitchio.utils import copy_doc, parse_timestamp
 
 if TYPE_CHECKING:
     import datetime
@@ -13,6 +13,11 @@ if TYPE_CHECKING:
     from .types.payloads import (
         ChannelBan as ChannelBanPayload,
         ChannelCheer as ChannelCheerPayload,
+        ChannelCustomReward_global_cooldown as ChannelCustomReward_global_cooldownPayload,
+        ChannelCustomReward_streamlimits as ChannelCustomReward_streamlimitsPayload,
+        ChannelCustomRewardModify as ChannelCustomRewardModifyPayload,
+        ChannelCustomRewardRedemptionModify as ChannelCustomRewardRedemptionModifyPayload,
+        ChannelCustomRewardRedemptionModify_Reward as ChannelCustomRewardRedemptionModify_RewardPayload,
         ChannelFollow as ChannelFollowPayload,
         ChannelGoalBeginProgress as ChannelGoalBeginProgressPayload,
         ChannelGoalEnd as ChannelGoalEndPayload,
@@ -21,13 +26,6 @@ if TYPE_CHECKING:
         ChannelHypeTrainEnd as ChannelHypeTrainEndPayload,
         ChannelModeratorAdd as ChannelModeratorAddPayload,
         ChannelModeratorRemove as ChannelModeratorRemovePayload,
-        ChannelRaid as ChannelRaidPayload,
-        ChannelSubscribe as ChannelSubscribePayload,
-        ChannelSubscriptionEnd as ChannelSubscribeEndPayload,
-        ChannelSubscriptionGift as ChannelSubscriptionGiftPayload,
-        ChannelSubscriptionMessage as ChannelSubscriptionMessagePayload,
-        ChannelUnban as ChannelUnbanPayload,
-        ChannelUpdate as ChannelUpdatePayload,
         ChannelPollBegin as ChannelPollBeginPayload,
         ChannelPollBegin_Choice as ChannelPollBegin_ChoicePayload,
         ChannelPollEnd as ChannelPollEndPayload,
@@ -35,13 +33,15 @@ if TYPE_CHECKING:
         ChannelPredictionBegin_outcomes as ChannelPredictionBegin_outcomesPayload,
         ChannelPredictionEnd as ChannelPredictionEndPayload,
         ChannelPredictionProgressLock as ChannelPredictionProgressLockPayload,
-        ChannelCustomReward_streamlimits as ChannelCustomReward_streamlimitsPayload,
-        ChannelCustomRewardRedemptionModify as ChannelCustomRewardRedemptionModifyPayload,
-        ChannelCustomReward_global_cooldown as ChannelCustomReward_global_cooldownPayload,
-        ChannelCustomRewardModify as ChannelCustomRewardModifyPayload,
-        ChannelCustomRewardRedemptionModify_Reward as ChannelCustomRewardRedemptionModify_RewardPayload,
+        ChannelRaid as ChannelRaidPayload,
         ChannelShoutoutCreate as ChannelShoutoutCreatePayload,
         ChannelShoutoutReceive as ChannelShoutoutReceivePayload,
+        ChannelSubscribe as ChannelSubscribePayload,
+        ChannelSubscriptionEnd as ChannelSubscribeEndPayload,
+        ChannelSubscriptionGift as ChannelSubscriptionGiftPayload,
+        ChannelSubscriptionMessage as ChannelSubscriptionMessagePayload,
+        ChannelUnban as ChannelUnbanPayload,
+        ChannelUpdate as ChannelUpdatePayload,
         Images as ImagePayload,
         StreamOffline as StreamOfflinePayload,
         StreamOnline as StreamOnlinePayload,

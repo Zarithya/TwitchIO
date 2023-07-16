@@ -22,15 +22,15 @@ SOFTWARE.
 """
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING
 
-import logging
 import aiohttp
 from typing_extensions import Self
 from yarl import URL
 
-from .exceptions import InvalidToken, RefreshFailure, NoTokenAvailable
+from .exceptions import InvalidToken, NoTokenAvailable, RefreshFailure
 from .utils import json_loader, maybe_coro
 
 if TYPE_CHECKING:

@@ -23,7 +23,7 @@ SOFTWARE.
 
 import datetime
 import inspect
-from typing import Any, Callable, Coroutine, TypeVar, Awaitable
+from typing import Any, Awaitable, Callable, Coroutine, TypeVar
 
 import iso8601
 
