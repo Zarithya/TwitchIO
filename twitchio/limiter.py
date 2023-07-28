@@ -36,9 +36,9 @@ import aiohttp
 from .utils import MISSING
 
 if TYPE_CHECKING:
-    from .models import PartialUser, User
+    from .models import BaseUser
 
-    UserT = PartialUser | User
+    UserT = BaseUser
     E = TypeVar("E", bound=BaseException)
 
 
@@ -82,8 +82,8 @@ class IRCRateLimiter:
 
 
 class RateLimitBucket:
-    def __init__(self, name: str) -> None:
-        self.name: str = name
+    def __init__(self, bucket: str) -> None:
+        self.bucket_name: str = bucket
         self.reset_at: float = MISSING
         self.tokens: int = MISSING
         self.max_tokens: int = MISSING
@@ -139,8 +139,7 @@ class HTTPRateLimiter:
         if user in self.buckets:
             return self.buckets[user]
 
-        name: str
-        name = cast(str, user.name) if user else "Client-Credential"
-        bucket = RateLimitBucket(name)
+        bucket_name: str = str(user.id) if user else "Client-Credential"
+        bucket = RateLimitBucket(bucket_name)
         self.buckets[user] = bucket
         return bucket

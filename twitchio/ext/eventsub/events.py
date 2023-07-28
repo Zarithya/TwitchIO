@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, TypeVar
 
 from typing_extensions import Self
 
-from ... import PartialUser
 from ...utils import json_loader, parse_timestamp as _parse_timestamp
 from .models import AllModels, _event_map
 

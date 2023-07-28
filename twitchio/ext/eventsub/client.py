@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Generic, Type
 import aiohttp
 from typing_extensions import Self
 
-from twitchio import Client as _BaseClient, PartialUser, utils
+from twitchio import Client as _BaseClient, BaseUser, utils
 from twitchio.http import HTTPHandler, Route, TokenHandlerT
 
 from . import models
@@ -248,18 +248,18 @@ class Client(Generic[TokenHandlerT]):
     # subscription stuff
 
     def _subscribe_with_broadcaster(
-        self, topic: Type[models.AllModels], broadcaster: PartialUser
+        self, topic: Type[models.AllModels], broadcaster: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id)}, broadcaster)
 
     def _subscribe_with_moderator(
-        self, topic: Type[models.AllModels], broadcaster: PartialUser, moderator: PartialUser
+        self, topic: Type[models.AllModels], broadcaster: BaseUser, moderator: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._transport.create_subscription(
             topic, {"broadcaster_user_id": str(broadcaster.id), "moderator_user_id": str(moderator.id)}, moderator
         )
 
-    def subscribe_channel_bans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_bans(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         """
         Parameters
         -----------
@@ -277,119 +277,119 @@ class Client(Generic[TokenHandlerT]):
         return self._subscribe_with_broadcaster(models.ChannelBan, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_unbans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_unbans(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelUnban, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_subscriptions(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_subscriptions(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelSubscribe, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_subscription_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_subscription_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelSubscribeEnd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_subscription_gifts(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_subscription_gifts(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelSubscribeGift, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_subscription_messages(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_subscription_messages(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelSubscribeMessage, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_cheers(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_cheers(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCheer, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_update(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_update(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelUpdate, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_follows(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_follows(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelFollow, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_moderators_add(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_moderators_add(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelModeratorAdd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_moderators_remove(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_moderators_remove(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelModeratorRemove, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_goal_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_goal_begin(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelGoalBegin, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_goal_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_goal_progress(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelGoalProgress, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_goal_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_goal_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelGoalEnd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_hypetrain_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_hypetrain_begin(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelHypeTrainBegin, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_hypetrain_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_hypetrain_progress(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelHypeTrainProgress, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_hypetrain_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_hypetrain_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelHypeTrainEnd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_stream_start(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_stream_start(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.StreamOnline, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_stream_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_stream_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.StreamOffline, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_poll_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_poll_begin(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPollBegin, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_poll_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_poll_progress(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPollProgress, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_poll_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_poll_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPollEnd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_prediction_begin(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_prediction_begin(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionBegin, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_prediction_progress(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_prediction_progress(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionProgress, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_prediction_lock(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_prediction_lock(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionLock, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_prediction_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_prediction_end(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionEnd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_reward_add(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_reward_add(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCustomRewardAdd, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_reward_update(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_reward_update(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCustomRewardUpdate, broadcaster)
 
     @utils.copy_doc(subscribe_channel_bans)
-    def subscribe_channel_reward_remove(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_reward_remove(self, broadcaster: BaseUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCustomRewardRemove, broadcaster)
 
     def subscribe_channel_reward_redeem(
-        self, broadcaster: PartialUser, moderator: PartialUser
+        self, broadcaster: BaseUser, moderator: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         """
         Parameters
@@ -411,18 +411,18 @@ class Client(Generic[TokenHandlerT]):
 
     @utils.copy_doc(subscribe_channel_reward_redeem)
     def subscribe_channel_reward_redeem_update(
-        self, broadcaster: PartialUser, moderator: PartialUser
+        self, broadcaster: BaseUser, moderator: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelCustomRewardRedemptionUpdate, broadcaster, moderator)
 
     @utils.copy_doc(subscribe_channel_reward_redeem)
     def subscribe_channel_shoutout_create(
-        self, broadcaster: PartialUser, moderator: PartialUser
+        self, broadcaster: BaseUser, moderator: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelShoutoutCreate, broadcaster, moderator)
 
     @utils.copy_doc(subscribe_channel_reward_redeem)
     def subscribe_channel_shoutout_receive(
-        self, broadcaster: PartialUser, moderator: PartialUser
+        self, broadcaster: BaseUser, moderator: BaseUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelShoutoutReceive, broadcaster, moderator)

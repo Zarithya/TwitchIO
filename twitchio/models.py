@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "DummyUser",
+    "BaseUser",
     "PartialUser",
     "BitLeaderboardUser",
     "UserBan",
@@ -97,7 +97,7 @@ class ActiveExtensionType(TypedDict):
     component: dict[int, ActiveExtension]
 
 
-class DummyUser:
+class BaseUser:
     """
     A barebones representation of a user. This doesn't have much use outside of being passed to methods that require a user object that simply contains an ID.
 
@@ -113,7 +113,7 @@ class DummyUser:
         self.id: int = int(id)
 
 
-class PartialUser(DummyUser):
+class PartialUser(BaseUser):
     """
     A minimal representation of a user on twitch.
     This class allows you to perform operations using the Twitch API, targeting channels and users.
@@ -465,22 +465,22 @@ class PartialUser(DummyUser):
         iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
         return iterator
 
-    async def fetch_follow(self, to_user: PartialUser) -> FollowEvent | None:
+    async def fetch_follow(self, to_user: BaseUser) -> FollowEvent | None:
         """|coro|
 
         Check if a user follows another user or when they followed a user.
 
         Parameters
         -----------
-        to_user: :class:`PartialUser`
+        to_user: :class:`BaseUser`
             The user to check for a follow to. (self -> to_user)
 
         Returns
         --------
             :class:`FollowEvent`
         """
-        if not isinstance(to_user, PartialUser):
-            raise TypeError(f"to_user must be a PartialUser not {type(to_user)}")
+        if not isinstance(to_user, BaseUser):
+            raise TypeError(f"to_user must be a BaseUser | PartialUser not {type(to_user)}")
 
         iterator: HTTPAwaitableAsyncIterator[FollowEvent] = self._http.get_user_follows(
             from_id=str(self.id), to_id=str(to_user.id)
@@ -489,7 +489,9 @@ class PartialUser(DummyUser):
         data = await iterator
         return data[0] if data else None
 
-    async def follow(self, target: User | PartialUser, *, notifications=False) -> None:
+
+# FIXME: delete these
+    async def follow(self, target: BaseUser, *, notifications=False) -> None:
         """|coro|
 
         Follows the target user. Requires an OAuth token with the ``user:edit:follows`` scope.

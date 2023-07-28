@@ -36,7 +36,7 @@ from .utils import json_loader, maybe_coro
 if TYPE_CHECKING:
     from .client import Client
     from .http import HTTPHandler
-    from .models import PartialUser, User
+    from .models import BaseUser, PartialUser
 
 __all__ = ("BaseToken", "Token", "BaseTokenHandler", "SimpleTokenHandler", "IRCTokenHandler")
 
@@ -247,7 +247,7 @@ class Token(BaseToken):
         if "login" not in data:
             raise InvalidToken("The token provided is an app access token. These cannot be used with the Token object")
 
-        from .models import PartialUser
+        from .models import PartialUser # circular imports
 
         self._scopes = data["scopes"]
         self._user = PartialUser(http, data["user_id"], data["login"])
@@ -333,7 +333,7 @@ class BaseTokenHandler:
             def get_irc_token(self): # can be async
                 return twitchio.Token(os.getenv("IRC_TOKEN"))
 
-            async def get_user_token(self, user: twitchio.PartialUser, scopes: tuple[str]): # can be sync
+            async def get_user_token(self, user: twitchio.BaseUser, scopes: tuple[str]): # can be sync
                 user_id = user.id
                 if user_id not in self.user_tokens:
                     raise RuntimeError("User not found :(")
@@ -347,7 +347,7 @@ class BaseTokenHandler:
     __oauth_url__ = "https://id.twitch.tv/oauth2/token"
 
     def __init__(self) -> None:
-        self.__cache: dict[User | PartialUser, set[Token]] = {}
+        self.__cache: dict[BaseUser, set[Token]] = {}
 
     def _post_init(self, client: Client) -> Self:
         self.client = client
@@ -380,7 +380,7 @@ class BaseTokenHandler:
             return BaseToken(data["access_token"])
 
     async def _client_get_user_token(
-        self, http: HTTPHandler, user: User | PartialUser, scope: tuple[str], *, no_cache: bool = False
+        self, http: HTTPHandler, user: BaseUser, scope: tuple[str], *, no_cache: bool = False
     ) -> Token:
         if not no_cache and user in self.__cache:
             if not self.__cache[user]:
@@ -490,7 +490,7 @@ class BaseTokenHandler:
         """
         raise NotImplementedError
 
-    async def get_user_token(self, user: User | PartialUser, scopes: tuple[str]) -> Token:
+    async def get_user_token(self, user: BaseUser | PartialUser, scopes: tuple[str]) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
         This function receives a user and a list of scopes that the request needs any one of to make the request.
@@ -502,7 +502,7 @@ class BaseTokenHandler:
 
         Parameters
         -----------
-        user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+        user: Union[:class:`~twitchio.BaseUser`, :class:`~twitchio.BaseUser`]
             The user that a token is expected for.
         scopes: tuple[:class:`str`]
             A list of scopes that the endpoint needs one of. Any one or more of the scopes must be present on the returned token to successfully make the request
@@ -547,7 +547,7 @@ class SimpleTokenHandler(BaseTokenHandler):
         self.client_id: str = client_id
         self.client_secret: str | None = client_secret
 
-    async def get_user_token(self, user: User | PartialUser, scopes: tuple[str]) -> Token:
+    async def get_user_token(self, user: BaseUser | PartialUser, scopes: tuple[str]) -> Token:
         return self.user_token
 
     async def get_client_token(self) -> BaseToken:

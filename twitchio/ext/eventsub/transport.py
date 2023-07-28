@@ -10,7 +10,7 @@ import aiohttp
 from aiohttp import web
 from yarl import URL
 
-from twitchio import PartialUser, __version__
+from twitchio import BaseUser, __version__
 from twitchio.http import Route
 from twitchio.utils import json_loader
 
@@ -75,7 +75,7 @@ class BaseTransport(Protocol):
         return self.client._request(route)
 
     async def create_subscription(
-        self, topic: Type[AllModels], condition: Condition, target: PartialUser | None
+        self, topic: Type[AllModels], condition: Condition, target: BaseUser | None
     ) -> HTTPSubscribeResponse:
         ...
 
@@ -213,12 +213,12 @@ class WebhookTransport(BaseTransport):
 class WebsocketSubscription:
     __slots__ = ("event", "condition", "subscription_id", "cost", "target")
 
-    def __init__(self, event: AllModels, condition: Condition, target: PartialUser) -> None:
+    def __init__(self, event: AllModels, condition: Condition, target: BaseUser) -> None:
         self.event: AllModels = event
         self.condition: Condition = condition
         self.subscription_id: str | None = None
         self.cost: int | None = None
-        self.target: PartialUser = target
+        self.target: BaseUser = target
 
 
 class WebsocketShard:
@@ -394,7 +394,7 @@ class WebsocketTransport(BaseTransport):
             await shard.disconnect()
 
     async def create_subscription(
-        self, topic: AllModels, condition: Condition, target: PartialUser
+        self, topic: AllModels, condition: Condition, target: BaseUser
     ) -> HTTPSubscribeResponse:
         """
         Creates a subscription for an event.

@@ -32,7 +32,7 @@ This is an example of the ext in standalone mode:
         
         eventsub_client = MyEventsubClient(transport, token_handler)
 
-        user = twitchio.DummyUser(id=123456789)
+        user = twitchio.BaseUser(id=123456789)
         await eventsub_client.subscribe_channel_update(user)
         
         while True:
