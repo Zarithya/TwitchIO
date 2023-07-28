@@ -170,7 +170,7 @@ class Token(BaseToken):
             f"refresh_token={self.refresh_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} scopes={self._scopes}>"
         )
 
-    async def refresh(self, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> None:
+    async def refresh(self, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> str:
         """|coro|
         Refreshes the access token, if a refresh token has been provided.
         If one hasn't been provided, this will raise :class:`~twitchio.InvalidToken`.
@@ -182,10 +182,12 @@ class Token(BaseToken):
         session: :class:`~aiohttp.ClientSession`
             The session to use to refresh the token
 
+        Returns
+        --------
+            :class:`str`
+
         Raises
         -------
-        :error:`~twitchio.InvalidToken`
-            The refresh token is missing or invalid.
         :error:`~twitchio.RefreshFailure`
             The token could not be refreshed.
         """
@@ -193,6 +195,9 @@ class Token(BaseToken):
 
         if not client_id or not client_secret:
             raise RefreshFailure("Cannot refresh user tokens without a client ID and client secret present")
+
+        if not self.refresh_token:
+            raise RefreshFailure(f"Cannot refresh user token for {self._user} without a refresh token!")
 
         logger.debug("Refreshing token for %s", self._user)
 
@@ -210,6 +215,8 @@ class Token(BaseToken):
 
             self.access_token = data["access_token"]
             self.refresh_token = data["refresh_token"]
+
+            return self.access_token
 
     async def validate(self, http: HTTPHandler, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> None:
         """|coro|

@@ -33,7 +33,7 @@ import aiohttp
 import multidict
 from yarl import URL
 
-from .exceptions import HTTPException, HTTPResponseException, Unauthorized
+from .exceptions import HTTPException, HTTPResponseException, RefreshFailure, Unauthorized
 from .limiter import HTTPRateLimiter, RateLimitBucket
 from .tokens import BaseToken, BaseTokenHandler, Token
 from .utils import MISSING, json_dumper, json_loader
@@ -285,13 +285,33 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                         logger.info("Received Unauthorized response from %s.", route.url.path)
                         if not is_fresh_token:
                             if isinstance(token, Token):
-                                self.token_handler._evict(token)
+                                logger.debug(
+                                    "Attempting to refresh token for target %s on route %s",
+                                    route.target,
+                                    route.url.path,
+                                )
+                                try:
+                                    raw_token = await token.refresh(
+                                        self.token_handler, cast(aiohttp.ClientSession, self._session)
+                                    )
+                                    is_fresh_token = True
+                                    headers["Authorization"] = f"Bearer {raw_token}"
+                                    continue
+                                except RefreshFailure:
+                                    self.token_handler._evict(token)
+                                    logger.debug(
+                                        "Failed to refresh token for target %s on route %s; evicting from cache and trying to get fresh token",
+                                        route.target,
+                                        route.url.path,
+                                    )
 
-                            logger.debug(
-                                "Attempting to get a fresh token for target %s on route %s",
-                                route.target,
-                                route.url.path,
-                            )
+                            else:
+                                logger.debug(
+                                    "Attempting to get a fresh token for target %s on route %s",
+                                    route.target,
+                                    route.url.path,
+                                )
+
                             token = await self._get_token_from_route(route, no_cache=True)
                             raw_token = await token.get(
                                 self, self.token_handler, cast(aiohttp.ClientSession, self._session)
@@ -323,9 +343,6 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     def request_paginated_route(self, route: Route) -> HTTPAwaitableAsyncIterator:
         iterator = HTTPAwaitableAsyncIterator(self, lambda page: self.request_paginated_endpoint(route, page))
         return iterator
-
-    def dummy(self):
-        return self.request(Route("GET", "/users", None, parameters=[("login", "iamtomahawkx")]))
 
     async def post_commercial(
         self, target: BaseUser, broadcaster_id: str, length: Literal[30, 60, 90, 120, 150, 180]
