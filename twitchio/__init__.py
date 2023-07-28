@@ -32,4 +32,5 @@ from .client import *
 from .exceptions import *
 from .message import *
 from .models import *
+from .rewards import *
 from .tokens import *

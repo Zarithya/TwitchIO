@@ -39,14 +39,13 @@
 
    <h3 class="index-section-header">API Reference</h3>
    <hr class="featuring-hr">
-   The API References of TwitchIO.
 
    <div class="index-apis-wrapper">
       <div class="index-apis-section">
          <b>TwitchIO Client Reference:</b>
          <ul class="index-featuring-list">
-            <li><a href="twitchio.html" class="reference internal">Client Reference</a>
-            <li><a href="reference.html" class="reference internal">Dataclass Reference</a>
+            <li><a href="major_reference.html" class="reference internal">Major Reference</a>
+            <li><a href="minor_reference.html" class="reference internal">Dataclass Reference</a>
          </ul>
       </div>
 
@@ -84,8 +83,8 @@
    :maxdepth: 1
    :caption: API Reference
 
-   twitchio
-   reference
+   major_reference
+   minor_reference
 
 .. rst-class:: index-display-none
 .. toctree::
@@ -111,6 +110,7 @@
    :caption: Changelog
 
    changelog
+   migrating
 
 
 .. raw:: html

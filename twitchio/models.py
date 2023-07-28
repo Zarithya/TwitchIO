@@ -55,6 +55,7 @@ __all__ = (
     "BanEvent",
     "FollowEvent",
     "SubscriptionEvent",
+    "SubscribedEvent",
     "Marker",
     "VideoMarkers",
     "Game",
@@ -105,6 +106,8 @@ class BaseUser:
     -----------
     id: :class:`int`
         The ID of the user.
+
+    .. versionadded:: 3.0
     """
 
     __slots__ = ("id",)
@@ -118,11 +121,13 @@ class PartialUser(BaseUser):
     A minimal representation of a user on twitch.
     This class allows you to perform operations using the Twitch API, targeting channels and users.
 
+    .. versionchanged:: 3.0
+
     Attributes
     -----------
     id: :class:`int`
         The id of the user.
-    name: Optional[:class:`str`]
+    name: :class:`str` | ``None``
         The name of the user (this corresponds to the ``login`` field of the API)
     """
 
@@ -141,11 +146,11 @@ class PartialUser(BaseUser):
     @property
     def channel(self) -> Channel | None:
         """
-        Returns the :class:`~twitchio.Channel` associated with this user. Could be ``None`` if you are not part of the channel's chat
+        Returns the :class:`~twitchio.Channel` associated with this user. Could be ``None`` if you are not part of the channel's chat.
 
         Returns
         --------
-        Optional[:class:`~twitchio.Channel`]
+        :class:`~twitchio.Channel` | ``None``
         """
         if not self.name:
             return None
@@ -156,7 +161,7 @@ class PartialUser(BaseUser):
     async def fetch(self) -> User:
         """|coro|
 
-        Fetches the full user from the api
+        Fetches the full user from the api.
 
         Returns
         --------
@@ -170,12 +175,12 @@ class PartialUser(BaseUser):
     async def edit(self, description: str) -> None:
         """|coro|
 
-        Edits a channels description
+        Edits a channels description.
 
         Parameters
         -----------
         description: :class:`str`
-            The new description for the user
+            The new description for the user.
         """
         await self._http.put_update_user(self, description)
 
@@ -191,41 +196,28 @@ class PartialUser(BaseUser):
         data = await self._http.get_channel_tags(str(self.id))
         return [Tag(self._http, x) for x in data["data"]]
 
-    async def replace_tags(self, tags: list[str | Tag]) -> None:
-        """|coro|
-
-        Replaces the channels active tags. Tags expire 72 hours after being applied,
-        unless the stream is live during that time period.
-
-        Parameters
-        -----------
-        token: :class:`str`
-            An oauth token with the user:edit:broadcast scope
-        tags: list[Union[:class:`Tag`, :class:`str`]]
-            A list of :class:`Tag` or tag ids to put on the channel. Max 100
-        """
-        tags_ = [x if isinstance(x, str) else x.id for x in tags]
-        await self._http.put_replace_channel_tags(self, str(self.id), tags_)
-
-    async def get_custom_rewards(
+    async def fetch_custom_rewards(
         self, *, only_manageable=False, ids: list[int] | None = None, force=False
     ) -> HTTPAwaitableAsyncIterator[CustomReward]:
-        """|coro|
+        """|aai|
 
         Fetches the channels custom rewards (aka channel points) from the api.
+        Requires an OAuth token with the ``channel:read:redemptions`` or ``channel:manage:redemptions`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         ----------
         only_manageable: :class:`bool`
             Whether to fetch all rewards or only ones you can manage. Defaults to false.
         ids: list[:class:`int`]
-            An optional list of reward ids
+            An optional list of reward ids.
         force: :class:`bool`
-            Whether to force a fetch or try to get from cache. Defaults to False
+            Whether to force a fetch or try to get from cache. Defaults to False.
 
         Returns
         -------
-        list[:class:`~twitchio.CustomReward`]
+        :class:`~twitchio.AwaitableAsyncIterator`[:class:`~twitchio.CustomReward`]
         """
         if not force and self._cached_rewards and self._cached_rewards[0] + 300 > time.monotonic():
             return HTTPAwaitableAsyncIteratorWithSource(self._cached_rewards[1])
@@ -249,16 +241,23 @@ class PartialUser(BaseUser):
     ) -> BitsLeaderboard:
         """|coro|
 
-        Fetches the bits leaderboard for the channel. This requires an OAuth token with the bits:read scope.
+        Fetches the bits leaderboard for the channel.
+        Requires an OAuth token with the ``bits:read`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
         period: Optional[:class:`str`]
-            one of `day`, `week`, `month`, `year`, or `all`, defaults to `all`
-        started_at: Optional[:class:`datetime.datetime`]
-            the timestamp to start the period at. This is ignored if the period is `all`
+            one of ``day``, ``week``, ``month``, ``year``, or ``all``, defaults to ``all``.
         user_id: Optional[:class:`int`]
-            the id of the user to fetch for
+            the id of the user to fetch for.
+        started_at: Optional[:class:`datetime.datetime`]
+            the timestamp to start the period at. This is ignored if the period is ``all``.
+
+        Returns
+        --------
+            :class:`BitsLeaderboard`
         """
 
         data = await self._http.get_bits_board(self, period, user_id, started_at)
@@ -267,7 +266,8 @@ class PartialUser(BaseUser):
     async def start_commercial(self, length: Literal[30, 60, 90, 120, 150, 180]) -> dict:
         """|coro|
 
-        Starts a commercial on the channel. Requires an OAuth token with the `channel:edit:commercial` scope.
+        Starts a commercial on the channel.
+        Requires an OAuth token with the ``channel:edit:commercial`` scope.
 
         Parameters
         -----------
@@ -276,7 +276,7 @@ class PartialUser(BaseUser):
 
         Returns
         --------
-        :class:`dict` a dictionary with `length`, `message`, and `retry_after`
+            :class:`dict` a dictionary with `length`, `message`, and `retry_after`
         """
         data = await self._http.post_commercial(self, str(self.id), length)
         return data
@@ -285,7 +285,8 @@ class PartialUser(BaseUser):
         """|coro|
 
         Creates a clip on the channel. Note that clips are not created instantly, so you will have to query
-        :meth:`~get_clips` to confirm the clip was created. Requires an OAuth token with the `clips:edit` scope
+        :meth:`~get_clips` to confirm the clip was created.
+        Requires an OAuth token with the ``clips:edit`` scope
 
         Parameters
         -----------
@@ -294,20 +295,22 @@ class PartialUser(BaseUser):
 
         Returns
         --------
-        :class:`dict` a dictionary with `id` and `edit_url`
+            :class:`dict` a dictionary with `id` and `edit_url`
         """
         data = await self._http.post_create_clip(self, self.id, has_delay)
         return data["data"][0]
 
     def fetch_clips(self) -> HTTPAwaitableAsyncIterator[Clip]:
-        """|coro|
+        """|aai|
 
-        Fetches clips from the api. This will only return clips from the specified user.
-        Use :class:`Client.fetch_clips` to fetch clips by id
+        Fetches clips from the api. This will only return clips created by this user.
+        Use :meth:`~twitchio.Client.fetch_clips` to fetch clips by id
+
+        .. versionchanged:: 3.0
 
         Returns
         --------
-        list[:class:`twitchio.Clip`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`~twitchio.Clip`]
         """
 
         iterator: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(self.id)
@@ -316,37 +319,42 @@ class PartialUser(BaseUser):
         return iterator
 
     def fetch_hypetrain_events(self, id: str | None = None) -> HTTPAwaitableAsyncIterator[HypeTrainEvent]:
-        """|coro|
+        """|aai|
 
-        Fetches hypetrain event from the api. Needs a token with the channel:read:hype_train scope.
+        Fetches hypetrain event from the api.
+        Requires a token with the ``channel:read:hype_train`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        id: Optional[:class:`str`]
-            The hypetrain id, if known, to fetch for
+        id: :class:`str` | ``None``
+            The hypetrain id, if known, to fetch for.
 
         Returns
         --------
-            list[:class:`twitchio.HypeTrainEvent`]
-            A list of hypetrain events
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`twitchio.HypeTrainEvent`]
         """
         iterator: HTTPAwaitableAsyncIterator[HypeTrainEvent] = self._http.get_hype_train(str(self.id), id=id)
         iterator.set_adapter(lambda handler, data: HypeTrainEvent(handler, data))
         return iterator
 
     def fetch_bans(self, userids: list[str | int] | None = None) -> HTTPAwaitableAsyncIterator[UserBan]:
-        """|coro|
+        """|aai|
 
-        Fetches a list of people the User has banned from their channel. Requires an OAuth token with the ``moderation:read`` scope.
+        Fetches a list of people the User has banned from their channel.
+        Requires an OAuth token with the ``moderation:read`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        userids: list[Union[:class:`str`, :class:`int`]]
-            An optional list of userids to fetch. Will fetch all bans if this is not passed
+        userids: list[Union[:class:`str`, :class:`int`]] | ``None``
+            An optional list of userids to fetch. Will fetch all bans if this is not passed.
 
         Returns
         --------
-        list[:class:`UserBan`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`UserBan`]
         """
         iterator: HTTPAwaitableAsyncIterator[UserBan] = self._http.get_channel_bans(
             self, str(self.id), user_ids=userids
@@ -355,20 +363,21 @@ class PartialUser(BaseUser):
         return iterator
 
     def fetch_ban_events(self, userids: list[int] | None = None) -> HTTPAwaitableAsyncIterator[BanEvent]:
-        """|coro|
+        """|aai|
 
-        Fetches ban/unban events from the User's channel. Requires an OAuth token with the ``moderation:read`` scope.
+        Fetches ban/unban events from the User's channel.
+        Requires an OAuth token with the ``moderation:read`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        token: :class:`str`
-            The oauth token with the moderation:read scope.
-        userids: list[:class:`int`]
-            An optional list of users to fetch ban/unban events for
+        userids: list[:class:`int`] | ``None``
+            An optional list of users to fetch ban/unban events for. If not passed, all events will be fetched.
 
         Returns
         --------
-            list[:class:`BanEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`BanEvent`]
         """
 
         iterator: HTTPAwaitableAsyncIterator[BanEvent] = self._http.get_channel_ban_unban_events(
@@ -378,18 +387,21 @@ class PartialUser(BaseUser):
         return iterator
 
     def fetch_moderators(self, userids: list[int] | None = None) -> HTTPAwaitableAsyncIterator[PartialUser]:
-        """|coro|
+        """|aai|
 
-        Fetches the moderators for this channel. Requires an OAuth token with the ``moderation:read`` scope.
+        Fetches the moderators for this channel.
+        Requires an OAuth token with the ``moderation:read`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        userids: list[:class:`int`]
-            An optional list of users to check mod status of
+        userids: list[:class:`int`] | ``None``
+            An optional list of users to check mod status of. If not passed, all mods will be fetched.
 
         Returns
         --------
-            list[:class:`twitchio.PartialUser`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`PartialUser`]
         """
         iterator: HTTPAwaitableAsyncIterator[PartialUser] = self._http.get_channel_moderators(
             self, str(self.id), user_ids=userids
@@ -400,11 +412,14 @@ class PartialUser(BaseUser):
     def fetch_mod_events(self) -> HTTPAwaitableAsyncIterator[ModEvent]:
         """|coro|
 
-        Fetches mod events (moderators being added and removed) for this channel. Requires an OAuth token with the ``moderation:read`` scope.
+        Fetches mod events (moderators being added and removed) for this channel.
+        Requires an OAuth token with the ``moderation:read`` scope.
+
+        .. versionchanged:: 3.0
 
         Returns
         --------
-            list[:class:`twitchio.ModEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`twitchio.ModEvent`]
         """
         iterator: HTTPAwaitableAsyncIterator[ModEvent] = self._http.get_channel_mod_events(self, str(self.id))
         iterator.set_adapter(lambda handler, data: ModEvent(handler, data, self))
@@ -413,12 +428,13 @@ class PartialUser(BaseUser):
     async def automod_check(self, query: list[AutomodCheckMessage]) -> list[AutomodCheckResponse]:
         """|coro|
 
-        Checks if a string passes the automod filter. Requires an OAuth token with the ``moderation:read`` scope.
+        Checks if a string passes the automod filter.
+        Requires an OAuth token with the ``moderation:read`` scope.
 
         Parameters
         -----------
         query: list[:class:`AutomodCheckMessage`]
-            A list of :class:`AutomodCheckMessage`
+            A list of :class:`AutomodCheckMessage`s.
 
         Returns
         --------
@@ -430,88 +446,89 @@ class PartialUser(BaseUser):
     async def fetch_stream_key(self) -> str:
         """|coro|
 
-        Fetches the users stream key. Requires an OAuth token with the ``channel:read:stream_key`` scope.
+        Fetches the users stream key.
+        Requires an OAuth token with the ``channel:read:stream_key`` scope.
+
+        .. versionchanged:: 3.0
 
         Returns
         --------
             :class:`str`
         """
         data = await self._http.get_stream_key(self, str(self.id))
-        return data  # FIXME what does this payload look like
+        return data["data"][0]["stream_key"]
 
     def fetch_following(self) -> HTTPAwaitableAsyncIterator[FollowEvent]:
-        """|coro|
+        """|aai|
 
-        Fetches a list of users that this user is following.
+        Fetches a list of users that this user is `following`.
+        Requires an OAuth token with the ``user:read:follows`` scope.
+
+        .. versionchanged:: 3.0
 
         Returns
         --------
-            list[:class:`FollowEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`FollowEvent`]
         """
-        iterator = self._http.get_user_follows(target=self, from_id=str(self.id))
+        iterator = self._http.get_user_follows(
+            target=self, from_id=str(self.id)
+        )  # FIXME: this route is deprecated, use channels/followed
         iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
         return iterator
 
     def fetch_followers(self) -> HTTPAwaitableAsyncIterator[FollowEvent]:
-        """|coro|
+        """|aai|
 
-        Fetches a list of users that are following this user.
+        Fetches a list of users that are `following` this user.
+        Requires an OAuth token with the ``moderator:read:followers`` scope.
+
+        .. versionchanged:: 3.0
 
         Returns
         --------
-            list[:class:`FollowEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`FollowEvent`]
         """
-        iterator = self._http.get_user_follows(to_id=str(self.id))
+        iterator = self._http.get_user_follows(to_id=str(self.id))  # FIXME: this is deprecated, use channels/followers
         iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
         return iterator
 
-    async def fetch_follow(self, to_user: BaseUser) -> FollowEvent | None:
-        """|coro|
-
-        Check if a user follows another user or when they followed a user.
-
-        Parameters
-        -----------
-        to_user: :class:`BaseUser`
-            The user to check for a follow to. (self -> to_user)
-
-        Returns
-        --------
-            :class:`FollowEvent`
-        """
-        if not isinstance(to_user, BaseUser):
-            raise TypeError(f"to_user must be a BaseUser | PartialUser not {type(to_user)}")
-
-        iterator: HTTPAwaitableAsyncIterator[FollowEvent] = self._http.get_user_follows(
-            from_id=str(self.id), to_id=str(to_user.id)
-        )
-        iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
-        data = await iterator
-        return data[0] if data else None
-    
-    async def fetch_subscriptions(
-        self, userids: list[int] | None = None
-    ) -> HTTPAwaitableAsyncIterator[SubscriptionEvent]:
-        """|coro|
+    def fetch_subscribers(self, userids: list[int] | None = None) -> HTTPAwaitableAsyncIterator[SubscriptionEvent]:
+        """|aai|
 
         Fetches the subscriptions for this channel.
+        Requires an OAuth token with the ``channel:read:subscriptions`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        token: :class:`str`
-            An oauth token with the channel:read:subscriptions scope
-        userids: Optional[list[:class:`int`]]
+        userids: list[:class:`int`] | ``None``
             An optional list of userids to look for
 
         Returns
         --------
-            list[:class:`twitchio.SubscriptionEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`twitchio.SubscriptionEvent`]
         """
         iterator: HTTPAwaitableAsyncIterator[SubscriptionEvent] = self._http.get_channel_subscriptions(
             self, str(self.id), user_ids=[str(x) for x in (userids or ())]
         )
         iterator.set_adapter(lambda handler, data: SubscriptionEvent(handler, data, self))
         return iterator
+
+    async def fetch_subscribed_to(self, to_user: BaseUser) -> SubscribedEvent | None:
+        """|coro|
+
+        Fetches the subscriptions for this channel.
+        Requires an OAuth token with the ``user:read:subscriptions`` scope.
+
+        .. versionchanged:: 3.0
+
+        Returns
+        --------
+            :class:`twitchio.SubscribedEvent` | ``None``
+        """
+        data = await self._http.get_user_subscription(self, str(self.id), str(to_user.id))
+        return SubscribedEvent(self._http, data["data"][0], self) if data["data"] else None
 
     async def create_marker(self, description: str | None = None) -> Marker:
         """|coro|
@@ -531,30 +548,44 @@ class PartialUser(BaseUser):
         data = await self._http.post_stream_marker(self, user_id=str(self.id), description=description)
         return Marker(data["data"][0])
 
-    async def fetch_markers(self, video_id: str | None = None) -> VideoMarkers | None:
-        """|coro|
+    async def fetch_markers(
+        self, video_id: str | None = None
+    ) -> HTTPAwaitableAsyncIterator[tuple[PartialUser, VideoMarkers]]:
+        """|aai|
 
         Fetches markers from the given video id, or the most recent video.
         The Twitch api will only return markers created by the user of the authorized token.
-        Requires an OAuth token with the ``user:edit:broadcast`` scope.
+        Requires an OAuth token with the ``user:read:broadcast`` or ``channel:manage:broadcast`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
         video_id: :class:`str`
-            A specific video o fetch from. Defaults to the most recent stream if not passed
+            A specific video to fetch from. Defaults to the most recent stream if not passed.
+            If this is not the users own video, they must be an editor on the users channel.
 
         Returns
         --------
-            Optional[:class:`twitchio.VideoMarkers`]
+            :class:`~twitchio.AwaitableAsyncIterator`[tuple[:class:`PartialUser`, :class:`twitchio.VideoMarkers`]]
         """
-        data = await self._http.get_stream_markers(self, user_id=str(self.id), video_id=video_id)
-        if data:
-            return VideoMarkers(data[0]["videos"])
+        iterator: HTTPAwaitableAsyncIterator[tuple[PartialUser, VideoMarkers]] = self._http.get_stream_markers(
+            self, user_id=str(self.id), video_id=video_id
+        )
+        iterator.set_adapter(
+            lambda handler, data: (
+                PartialUser(handler, data["user_id"], data["user_login"]),
+                VideoMarkers(data["videos"]),
+            )
+        )
+        return iterator
 
     async def fetch_extensions(self) -> list[Extension]:
         """|coro|
 
-        Fetches extensions the user has (active and inactive). Requires an OAuth token with the ``user:read:broadcast`` scope.
+        Fetches extensions the user has (active and inactive).
+        Requires an OAuth token with the ``user:read:broadcast`` or ``user:edit:broadcast`` scope.
+        * To include inactive extensions, you must have the ``user:edit:broadcast`` scope.
 
         Returns
         --------
@@ -563,33 +594,40 @@ class PartialUser(BaseUser):
         data = await self._http.get_channel_extensions(self)
         return [Extension(d) for d in data["data"]]
 
-    async def fetch_active_extensions(self) -> ActiveExtensionType:
+    async def fetch_active_extensions(self, use_app_token: bool = False) -> ActiveExtensionType:
         """|coro|
 
         Fetches active extensions the user has.
         Returns a dictionary containing the following keys: `panel`, `overlay`, `component`.
 
+        May require an OAuth token with the ``user:read:broadcast`` or ``user:edit:broadcast`` scope.
+
+        .. versionchanged:: 3.0
+
         Parameters
         -----------
-        token: Optional[:class:`str`]
-            An oauth token with the user:read:broadcast *or* user:edit:broadcast scope
+        use_app_token: :class:`bool`
+            Whether to use an app access token, or use a user OAuth token. Defaults to ``False``.
 
         Returns
         --------
             dict[Literal["panel", "overlay", "component"], dict[:class:`int`, :class:`ActiveExtension`]]
         """
-        data = await self._http.get_user_active_extensions(self, str(self.id))
-        return {typ: {int(n): ActiveExtension(d) for n, d in vals.items()} for typ, vals in data.items()}  # type: ignore
+        if use_app_token:
+            data = await self._http.get_user_active_extensions_client_token(str(self.id))
+        else:
+            data = await self._http.get_user_active_extensions(self)
+
+        return {typ: {int(n): ActiveExtension(d) for n, d in vals.items()} for typ, vals in data["data"].items()}  # type: ignore
 
     async def update_extensions(self, extensions: ExtensionBuilder) -> ActiveExtensionType:
         """|coro|
 
-        Updates a users extensions. See the :class:`ExtensionBuilder` for information on how to use it
+        Updates a users extensions. See the :class:`ExtensionBuilder` for information on how to use it.
+        Requires an OAuth token with the ``user:edit:broadcast`` scope.
 
         Parameters
         -----------
-        token: :class:`str`
-            An oauth token with user:edit:broadcast scope
         extensions: :class:`twitchio.ExtensionBuilder`
             A :class:`twitchio.ExtensionBuilder` to be given to the twitch api
 
@@ -598,18 +636,20 @@ class PartialUser(BaseUser):
             dict[:class:`str`, dict[:class:`int`, :class:`twitchio.ActiveExtension`]]
         """
         data = await self._http.put_user_extensions(self, extensions._to_dict())
-        return {typ: {int(n): ActiveExtension(d) for n, d in vals.items()} for typ, vals in data.items()}  # type: ignore
+        return {typ: {int(n): ActiveExtension(d) for n, d in vals.items()} for typ, vals in data["data"].items()}  # type: ignore
 
     def fetch_videos(
         self,
         period: Literal["all", "day", "week", "month"] = "all",
         sort: Literal["time", "trending", "views"] = "time",
         type: Literal["upload", "archive", "highlight", "all"] = "all",
-        language=None,
+        use_app_token: bool = False,
     ) -> HTTPAwaitableAsyncIterator[Video]:
-        """|coro|
+        """|aai|
 
         Fetches videos that belong to the user. If you have specific video ids use :func:`~twitchio.Client.fetch_videos`
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
@@ -619,39 +659,53 @@ class PartialUser(BaseUser):
             Sort orders of the videos. Valid values are `time`, `trending`, `views`, Defaults to `time`
         type: Optional[:class:`str`]
             Type of the videos to fetch. Valid values are `upload`, `archive`, `highlight`, `all`. Defaults to `all`
-        language: Optional[:class:`str`]
-            Language of the videos to fetch. Must be an `ISO-639-1 <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_ two letter code.
+        use_app_token: :class:`bool`
+            Whether to use an app access token, or use a user OAuth token. Defaults to ``False``.
 
         Returns
         --------
-            list[:class:`twitchio.Video`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`twitchio.Video`]
         """
+        target = None if use_app_token else self
         iterator: HTTPAwaitableAsyncIterator[Video] = self._http.get_videos(
-            user_id=str(self.id), period=period, sort=sort, type=type, language=language
+            user_id=str(self.id), period=period, sort=sort, type=type, target=target
         )
         iterator.set_adapter(lambda handler, data: Video(handler, data, self))
         return iterator
 
     async def end_prediction(
-        self, prediction_id: str, status: str, winning_outcome_id: str | None = None
+        self,
+        prediction_id: str,
+        status: Literal["RESOLVED", "CANCELED", "LOCKED"],
+        winning_outcome_id: str | None = None,
     ) -> Prediction:
         """|coro|
 
-        End a prediction with an outcome. Requires an OAuth token with the ``channel:manage:prediction`` scope.
+        End a prediction with an outcome.
+        If you lock the prediction, you may call this method again to update the status to resolved or canceled.
+        Requires an OAuth token with the ``channel:manage:predictions`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
         prediction_id: :class:`str`
             ID of the prediction to end.
         status: :class:`str`
-            TODO what this
-        winning_outcome_id: Optional[:class:`str`]
-            The outcome id. # TODO wth is this
+            The status of the prediction. Must be one of `RESOLVED`, `CANCELED`, or `LOCKED`.
+            Once the status is set to locked, you have 24 hours to update the status to RESOLVED,
+            or twitch will cancel the prediction, and return the points.
+        winning_outcome_id: :class:`str` | ``None``
+            The outcome id that wins the prediction. This must be set if ``status`` is set to ``RESOLVED``.
 
         Returns
         --------
             :class:`Prediction`
         """
+        assert winning_outcome_id is not None if status == "RESOLVED" else True, ValueError(
+            "winning_outcome_id must be set when status is RESOLVED"
+        )
+
         data = await self._http.patch_prediction(
             self,
             broadcaster_id=str(self.id),
@@ -659,71 +713,80 @@ class PartialUser(BaseUser):
             status=status,
             winning_outcome_id=winning_outcome_id,
         )
-        return Prediction(self._http, data[0])
+        return Prediction(self._http, data["data"][0])
 
-    async def get_predictions(self, prediction_id: str | None = None) -> list[Prediction]:
-        """|coro|
+    def get_predictions(self, prediction_id: str | None = None) -> HTTPAwaitableAsyncIterator[Prediction]:
+        """|aai|
 
-        Gets information on a prediction or the list of predictions if none is provided.
+        Gets information on a prediction or the list of predictions if no id is provided.
+        Requires an OAuth token with the ``channel:read:predictions`` or ``channel:manage:predictions`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        prediction_id: :class:`str`
+        prediction_id: :class:`str` | ``None``
             ID of the prediction to receive information about.
 
         Returns
         --------
-            list[:class:`Prediction`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`Prediction`]
         """
 
-        data = await self._http.get_predictions(self, broadcaster_id=self.id, prediction_id=prediction_id)
-        return [Prediction(self._http, d) for d in data]
+        iterator: HTTPAwaitableAsyncIterator[Prediction] = self._http.get_predictions(
+            self, broadcaster_id=self.id, prediction_id=prediction_id
+        )
+        iterator.set_adapter(lambda handler, data: Prediction(handler, data))
+        return iterator
 
-    async def create_prediction(
-        self, title: str, blue_outcome: str, pink_outcome: str, prediction_window: int
-    ) -> Prediction:
+    async def create_prediction(self, title: str, outcomes: list[str], prediction_window: int) -> Prediction:
         """|coro|
 
         Creates a prediction for the channel.
+        Requires an OAuth token with the ``channel:manage:predictions`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
         title: :class:`str`
             Title for the prediction (max of 45 characters)
-        blue_outcome: :class:`str`
-            Text for the first outcome people can vote for. (max 25 characters)
-        pink_outcome: :class:`str`
-            Text for the second outcome people can vote for. (max 25 characters)
+        outcomes: list[:class:`str`]
+            The available outcomes for the prediction. There must be between 2 and 10 outcomes, each may contain up to 25 characters.
         prediction_window: :class:`int`
-            Total duration for the prediction (in seconds)
+            Total duration for the prediction (in seconds). Minimum 30 and maximum 1800 (30 minutes).
 
         Returns
         --------
             :class:`twitchio.Prediction`
         """
 
+        assert 2 <= len(outcomes) <= 10, ValueError("There must be between 2 and 10 outcomes.")
+        assert 30 <= prediction_window <= 1800, ValueError("The prediction window must be between 30 and 1800")
+
         data = await self._http.post_prediction(
             self,
             broadcaster_id=self.id,
             title=title,
-            blue_outcome=blue_outcome,
-            pink_outcome=pink_outcome,
+            outcomes=outcomes,
             prediction_window=prediction_window,
         )
-        return Prediction(self._http, data[0])
+        return Prediction(self._http, data["data"][0])
 
     async def modify_channel(
         self,
-        token: str,
         game_id: int | None = None,
         language: str | None = None,
         title: str | None = None,
         content_classification_labels: list[dict[str, str | bool]] | None = None,
         is_branded_content: bool | None = None,
-    ):
+    ) -> None:
         """|coro|
 
-        Modify stream information
+        Modify stream information.
+        Requires an OAuth token with the ``channel:manage:broadcast`` scope.
+
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
@@ -733,18 +796,20 @@ class PartialUser(BaseUser):
             Optional language of the channel. A language value must be either the ISO 639-1 two-letter code for a supported stream language or “other”.
         title: :class:`str`
             Optional title of the stream.
-        content_classification_labels: List[Dict[:class:`str`, Union[:class:`str`, :class:`bool`]]]
+        content_classification_labels: list[dict[:class:`str`, Union[:class:`str`, :class:`bool`]]]
             List of labels that should be set as the Channel's CCLs.
+
+            .. note::
+
+                Example of a content classification labels
+
+                .. code:: py
+
+                    ccl = [{"id": "Gambling", "is_enabled": False}, {"id": "DrugsIntoxication", "is_enabled": False}]
+                    await my_partial_user.modify_stream(content_classification_labels=ccl)
+
         is_branded_content: :class:`bool`
             Boolean flag indicating if the channel has branded content.
-
-                .. note::
-
-                    Example of a content classification labels
-                    .. code:: py
-
-                        ccl = [{"id": "Gambling", "is_enabled": False}, {"id": "DrugsIntoxication", "is_enabled": False}]
-                        await my_partial_user.modify_stream(token="abcd", content_classification_labels=ccl)
         """
         gid = str(game_id) if game_id is not None else None
         await self._http.patch_channel(
@@ -757,78 +822,84 @@ class PartialUser(BaseUser):
             is_branded_content=is_branded_content,
         )
 
-    async def fetch_schedule(
+    def fetch_schedule(  # TODO: this cant be raw requests but data payload is a dict so cant use aai
         self,
         segment_ids: list[str] | None = None,
         start_time: datetime.datetime | None = None,
-        utc_offset: int | None = None,
-        first: int = 20,
-    ):
-        """|coro|
+        use_app_token: bool = False,
+    ) -> HTTPAwaitableAsyncIterator[Schedule]:
+        """|aai|
 
-        Fetches the schedule of a streamer
+        Fetches the channel schedule.
+
+        .. versionchanged:: 3.0
+
         Parameters
         -----------
-        segment_ids: Optional[list[:class:`str`]]
+        segment_ids: list[:class:`str`] | ``None``
             List of segment IDs of the stream schedule to return. Maximum: 100
-        start_time: Optional[:class:`datetime.datetime`]
+        start_time: :class:`datetime.datetime` | ``None``
             A datetime object to start returning stream segments from. If not specified, the current date and time is used.
-        utc_offset: Optional[:class:`int`]
-            A timezone offset for the requester specified in minutes. +4 hours from GMT would be `240`
-        first: Optional[:class:`int`]
-            Maximum number of stream segments to return. Maximum: 25. Default: 20.
 
         Returns
         --------
-            :class:`twitchio.Schedule`
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`twitchio.Schedule`]
         """
+        raise RuntimeError("This is broken")
+        target = None if use_app_token else self
 
-        data = await self._http.get_channel_schedule(
+        iterator: HTTPAwaitableAsyncIterator[Schedule] = self._http.get_channel_schedule(
             broadcaster_id=str(self.id),
+            target=target,
             segment_ids=segment_ids,
             start_time=start_time,
-            utc_offset=utc_offset,
-            first=first,
         )
-        return Schedule(self._http, data)
+        iterator.set_adapter(lambda handler, data: Schedule(handler, data))
+        return iterator
 
-    async def fetch_channel_teams(self):
+    async def fetch_channel_teams(self, use_app_token: bool = False) -> list[ChannelTeams]:
         """|coro|
 
         Fetches a list of Twitch Teams of which the specified channel/broadcaster is a member.
 
-        Returns
-        --------
-        list[:class:`twitchio.ChannelTeams`]
-        """
-
-        data = await self._http.get_channel_teams(
-            broadcaster_id=str(self.id),
-        )
-
-        return [ChannelTeams(self._http, x) for x in data]
-
-    def fetch_polls(
-        self, poll_ids: list[str] | None = None, first: int | None = 20
-    ) -> HTTPAwaitableAsyncIterator[Poll]:
-        """|coro|
-
-        Fetches a list of polls for the specified channel/broadcaster.
+        .. versionchanged:: 3.0
 
         Parameters
         -----------
-        poll_ids: Optional[list[:class:`str`]]
-            List of poll IDs to return. Maximum: 100
-        first: Optional[:class:`int`]
-            Number of polls to return. Maximum: 20. Default: 20.
+        use_app_token: :class:`bool`
+            Whether to use an app access token, or use a user OAuth token. Defaults to ``False``.
 
         Returns
         --------
-        list[:class:`twitchio.Poll`]
+            list[:class:`twitchio.ChannelTeams`]
+        """
+        target = None if use_app_token else self
+
+        data = await self._http.get_channel_teams(broadcaster_id=str(self.id), target=target)
+
+        return [ChannelTeams(self._http, x) for x in data["data"]]
+
+    def fetch_polls(self, poll_ids: list[str] | None = None) -> HTTPAwaitableAsyncIterator[Poll]:
+        """|aai|
+
+        Fetches a list of polls for the specified channel/broadcaster.
+        Requires an OAuth token with the ``channel:read:polls`` or ``channel:manage:polls`` scope.
+        Polls are available for 90 days after being created.
+
+        .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        poll_ids: list[:class:`str`] | ``None``
+            List of poll IDs to return. Maximum: 100
+
+        Returns
+        --------
+            :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`twitchio.Poll`]
         """
 
         data: HTTPAwaitableAsyncIterator[Poll] = self._http.get_polls(
-            broadcaster_id=str(self.id), target=self, poll_ids=poll_ids, first=first
+            broadcaster_id=str(self.id), target=self, poll_ids=poll_ids
         )
         data.set_adapter(lambda handler, data: Poll(handler, data))
         return data
@@ -838,14 +909,15 @@ class PartialUser(BaseUser):
         title: str,
         choices: list[str],
         duration: int,
-        bits_voting_enabled: bool | None = False,
+        bits_voting_enabled: bool = False,
         bits_per_vote: int | None = None,
         channel_points_voting_enabled: bool | None = False,
         channel_points_per_vote: int | None = None,
-    ):
+    ) -> Poll:
         """|coro|
 
         Creates a poll for the specified channel/broadcaster.
+        Requires an OAuth token with the ``channel:manage:polls`` scope.
 
         Parameters
         -----------
@@ -855,18 +927,18 @@ class PartialUser(BaseUser):
             List of choices for the poll. Must be between 2 and 5 choices.
         duration: :class:`int`
             Total duration for the poll in seconds. Must be between 15 and 1800.
-        bits_voting_enabled: Optional[:class:`bool`]
+        bits_voting_enabled: :class:`bool` | ``None``
             Indicates if Bits can be used for voting. Default is False.
-        bits_per_vote: Optional[:class:`int`]
+        bits_per_vote: :class:`int` | ``None``
             Number of Bits required to vote once with Bits. Max 10000.
-        channel_points_voting_enabled: Optional[:class:`bool`]
-            Indicates if Channel Points can be used for voting. Default is False.
-        channel_points_per_vote: Optional[:class:`int`]
+        channel_points_voting_enabled: :class:`bool`
+            Indicates if Channel Points can be used for extra votes. Default is False.
+        channel_points_per_vote: :class:`int` | ``None``
             Number of Channel Points required to vote once with Channel Points. Max 1000000.
 
         Returns
         --------
-        list[:class:`twitchio.Poll`]
+            :class:`twitchio.Poll`
         """
 
         data = await self._http.post_poll(
@@ -886,62 +958,195 @@ class PartialUser(BaseUser):
         """|coro|
 
         Ends a poll for the specified channel/broadcaster.
+        Requires an OAuth token with the ``channel:manage:polls`` scope.
 
         Parameters
         -----------
         poll_id: :class:`str`
             ID of the poll.
-        status: Literal["TERMINATED", "ARCHIVED"]
+        status: :class:`str`
             The poll status to be set. Valid values:
             TERMINATED: End the poll manually, but allow it to be viewed publicly.
             ARCHIVED: End the poll manually and do not allow it to be viewed publicly.
 
         Returns
         --------
-        :class:`twitchio.Poll`
+            :class:`twitchio.Poll`
         """
 
         data = await self._http.patch_poll(broadcaster_id=str(self.id), target=self, id=poll_id, status=status)
         return Poll(self._http, data[0])
 
-    async def shoutout(self, to_broadcaster_id: int, moderator_id: int):
+    async def shoutout(self, target_broadcaster: BaseUser, moderator: BaseUser | None = None) -> None:
         """|coro|
         Sends a Shoutout to the specified broadcaster.
         ``Rate Limits``: The broadcaster may send a Shoutout once every 2 minutes. They may send the same broadcaster a Shoutout once every 60 minutes.
-        Requires a user access token that includes the ``moderator:manage:shoutouts`` scope.
+        Requires an OAuth token with the ``moderator:manage:shoutouts`` scope.
+
+        .. versionchanged:: 3.0
+
         Parameters
         -----------
-        token: :class:`str`
-            An oauth user token with the ``moderator:manage:shoutouts``scope.
-        to_broadcaster: :class:`int`
+        target_broadcaster: :class:`BaseUser`
             The ID of the broadcaster that is recieving the shoutout.
-        moderator_id: :class:`int`
-            The ID of the broadcaster or a user that is one of the broadcaster's moderators. This ID must match the user ID in the access token.
-        Returns
-        --------
-        None
+        moderator: :class:`BaseUser`
+            The ID of the broadcaster or a user that is one of the broadcaster's moderators.
+            Setting this will attempt to fetch the request using the moderators token, otherwise the broadcasters will be used.
         """
 
+        target = moderator or self
+        mod_id = moderator.id if moderator else self.id
+
         await self._http.post_shoutout(
-            target=self,
+            target=target,
             broadcaster_id=str(self.id),
-            to_broadcaster_id=str(to_broadcaster_id),
-            moderator_id=str(moderator_id),
+            to_broadcaster_id=str(target_broadcaster.id),
+            moderator_id=str(mod_id),
         )
+
+    async def fetch_goals(self) -> list[Goal]:
+        """|coro|
+
+        Fetches a list of goals for the channel.
+        Requires an OAuth token with the ``user:read:broadcast`` scope.
+
+        .. versionchanged:: 3.0
+
+        Returns
+        --------
+            list[:class:`twitchio.Goal`]
+        """
+
+        data = await self._http.get_goals(broadcaster_id=str(self.id), target=self)
+        return [Goal(self._http, x) for x in data]
+
+    async def fetch_chat_settings(self, moderator: BaseUser | None = None) -> ChatSettings:
+        """|coro|
+
+        Fetches the current chat settings for the channel.
+
+        .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        moderator: :class:`BaseUser` | ``None``
+            A moderator to fetch the chat settings as.
+            Setting this will attempt to fetch the request using the moderators token, otherwise the broadcasters will be used.
+
+        Returns
+        --------
+            :class:`ChatSettings`
+        """
+        target = moderator or self
+        mod_id = moderator.id if moderator else self.id
+
+        data = await self._http.get_chat_settings(broadcaster_id=str(self.id), moderator_id=str(mod_id), target=target)
+        return ChatSettings(self._http, data[0])
+
+    async def update_chat_settings(
+        self,
+        moderator: BaseUser | None = None,
+        emote_mode: bool | None = None,
+        follower_mode: bool | None = None,
+        follower_mode_duration: int | None = None,
+        slow_mode: bool | None = None,
+        slow_mode_wait_time: int | None = None,
+        subscriber_mode: bool | None = None,
+        unique_chat_mode: bool | None = None,
+        non_moderator_chat_delay: bool | None = None,
+        non_moderator_chat_delay_duration: int | None = None,
+    ):
+        """|coro|
+
+        Updates the current chat settings for this channel/broadcaster.
+
+        .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        moderator: :class:`BaseUser` | ``None``
+            A moderator to update the chat settings as.
+            Setting this will attempt to fetch the request using the moderators token, otherwise the broadcasters will be used.
+        token: :class:`str`
+            An oauth token with the moderator:manage:chat_settings scope.
+        emote_mode: Optional[:class:`bool`]
+            A boolean to determine whether chat must contain only emotes or not.
+        follower_mode: Optional[:class:`bool`]
+            A boolean to determine whether chat must contain only emotes or not.
+        follower_mode_duration: Optional[:class:`int`]
+            The length of time, in minutes, that the followers must have followed the broadcaster to participate in chat.
+            Values: 0 (no restriction) through 129600 (3 months). The default is 0.
+        slow_mode: Optional[:class:`bool`]
+            A boolean to determine whether the broadcaster limits how often users in the chat room are allowed to send messages.
+        slow_mode_wait_time: Optional[:class:`int`]
+            The amount of time, in seconds, that users need to wait between sending messages.
+            Values: 3 through 120 (2 minute delay). The default is 30 seconds.
+        subscriber_mode: Optional[:class:`bool`]
+            A boolean to determine whether only users that subscribe to the broadcaster's channel can talk in chat.
+        unique_chat_mode: Optional[:class:`bool`]
+            A boolean to determine whether the broadcaster requires users to post only unique messages in chat.
+        non_moderator_chat_delay: Optional[:class:`bool`]
+            A boolean to determine whether the broadcaster adds a short delay before chat messages appear in chat.
+        non_moderator_chat_delay_duration: Optional[:class:`int`]
+            The amount of time, in seconds, that messages are delayed from appearing in chat.
+            Valid values: 2, 4 and 6.
+
+        Returns
+        --------
+            :class:`twitchio.ChatSettings`
+        """
+        target = moderator or self
+        mod_id = moderator.id if moderator else self.id
+
+        data = await self._http.patch_chat_settings(
+            target=target,
+            broadcaster_id=str(self.id),
+            moderator_id=str(mod_id),
+            emote_mode=emote_mode,
+            follower_mode=follower_mode,
+            follower_mode_duration=follower_mode_duration,
+            slow_mode=slow_mode,
+            slow_mode_wait_time=slow_mode_wait_time,
+            subscriber_mode=subscriber_mode,
+            unique_chat_mode=unique_chat_mode,
+            non_moderator_chat_delay=non_moderator_chat_delay,
+            non_moderator_chat_delay_duration=non_moderator_chat_delay_duration,
+        )
+        return ChatSettings(self._http, data[0])
 
 
 class BitLeaderboardUser(PartialUser):
+    """
+    A representation of a user on the Bit Leaderboard.
+    This contains all the methods of the :class:`PartialUser`, but also contains the :attr:`~.rank` and :attr:`~.score` attributes.
+
+    Attributes
+    -----------
+    id: :class:`str`
+        The id of the user.
+    name: :class:`str` | ``None``
+        The name of the user (this corresponds to the ``login`` field of the API).
+    rank: :class:`int`
+        The users position on the leaderboard.
+    score: :class:`int`
+        How many bits Bits the user has cheered.
+    """
+
     __slots__ = "rank", "score"
 
     def __init__(self, http: HTTPHandler, data: dict):
-        super().__init__(http, id=data["user_id"], name=data["user_name"])
+        super().__init__(http, id=data["user_id"], name=data["user_login"])
         self.rank: int = data["rank"]
         self.score: int = data["score"]
+
+    def __repr__(self) -> str:
+        return f"<BitLeaderboardUser id={self.id}, name={self.name} rank={self.rank} score={self.score}>"
 
 
 class UserBan(PartialUser):  # TODO will probably rework this
     """
     Represents a banned user or one in timeout.
+    This contains all the methods of the :class:`PartialUser`, but also contains information about the banned user.
 
     Attributes
     ----------
@@ -1374,7 +1579,7 @@ class FollowEvent:
 
 class SubscriptionEvent:
     """
-    Represents a Subscription Event
+    Represents a Subscription Event. This is for when someone subscribes to the target user.
 
     Attributes
     -----------
@@ -1388,29 +1593,68 @@ class SubscriptionEvent:
         Name of the description. (twitch docs aren't helpful, if you know what this is specifically please PR :) ).
     gift: :class:`bool`
         Whether the subscription is a gift.
+    gifter: :class:`PartialUser` | ``None``
+        The user that gifted the sub, if applicable.
     """
 
-    __slots__ = "broadcaster", "gift", "tier", "plan_name", "user"
+    __slots__ = "broadcaster", "gift", "tier", "plan_name", "user", "gifter"
 
-    def __init__(
-        self,
-        http: HTTPHandler,
-        data: dict,
-        broadcaster: User | PartialUser | None = None,
-        user: User | PartialUser | None = None,
-    ):
+    def __init__(self, http: HTTPHandler, data: dict, broadcaster: User | PartialUser | None = None):
         self.broadcaster: User | PartialUser = broadcaster or PartialUser(
-            http, data["broadcaster_id"], data["broadcaster_name"]
+            http, data["broadcaster_id"], data["broadcaster_login"]
         )
-        self.user: User | PartialUser = user or PartialUser(http, data["user_id"], data["user_name"])
+        self.user: PartialUser = PartialUser(http, data["user_id"], data["user_login"])
         self.tier: int = round(int(data["tier"]) / 1000)
         self.plan_name: str = data["plan_name"]
         self.gift: bool = data["is_gift"]
+        self.gifter: PartialUser | None = (
+            PartialUser(http, data["gifter_id"], data["gifter_login"]) if data["gifter_id"] else None
+        )
 
     def __repr__(self) -> str:
         return (
             f"<SubscriptionEvent broadcaster={self.broadcaster} user={self.user} tier={self.tier} "
             f"plan_name={self.plan_name} gift={self.gift}>"
+        )
+
+
+class SubscribedEvent:
+    """
+    Represents a Subscribed Event. This is for when the target user subscribes to a channel.
+
+    Attributes
+    -----------
+    broadcaster: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+        The user that was subscribed to.
+    user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+        The user who subscribed.
+    tier: :class:`int`
+        The tier at which the user subscribed. Could be ``1``, ``2``, or ``3``.
+    gift: :class:`bool`
+        Whether the subscription is a gift.
+    gifter: :class:`PartialUser` | ``None``
+        The user that gifted the sub, if applicable.
+    """
+
+    __slots__ = "broadcaster", "gift", "gifter", "tier", "user"
+
+    def __init__(
+        self,
+        http: HTTPHandler,
+        data: dict,
+        user: User | PartialUser,
+    ):
+        self.broadcaster: PartialUser = PartialUser(http, data["broadcaster_id"], data["broadcaster_login"])
+        self.user: User | PartialUser = user
+        self.tier: int = round(int(data["tier"]) / 1000)
+        self.gift: bool = data["is_gift"]
+        self.gifter: PartialUser | None = (
+            PartialUser(http, data["gifter_id"], data["gifter_login"]) if "gifter_id" in data else None
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"<SubscribedEvent broadcaster={self.broadcaster} user={self.user} tier={self.tier} " f"gift={self.gift}>"
         )
 
 
@@ -2004,19 +2248,19 @@ class Prediction:
         ID of the Prediction.
     title: :class:`str`
         Title for the Prediction.
-    winning_outcome_id: :class:`str`
-        ID of the winning outcome
+    winning_outcome_id: :class:`str` | ``None``
+        ID of the winning outcome.
     outcomes: list[:class:`~twitchio.PredictionOutcome`]
         List of possible outcomes for the Prediction.
     prediction_window: :class:`int`
         Total duration for the Prediction (in seconds).
     prediction_status: :class:`str`
-        Status of the Prediction.
+        Status of the Prediction. One of ACTIVE, CANCELED, LOCKED, or RESOLVED.
     created_at: :class:`datetime.datetime`
         Time for when the Prediction was created.
-    ended_at: Optional[:class:`datetime.datetime`]
+    ended_at: :class:`datetime.datetime` | ``None``
         Time for when the Prediction ended.
-    locked_at: Optional[:class:`datetime.datetime`]
+    locked_at: :class:`datetime.datetime` | ``None``
         Time for when the Prediction was locked.
     """
 
@@ -2034,13 +2278,13 @@ class Prediction:
     )
 
     def __init__(self, http: HTTPHandler, data: dict) -> None:
-        self.user: PartialUser = PartialUser(http, data["broadcaster_id"], data["broadcaster_name"])
+        self.user: PartialUser = PartialUser(http, data["broadcaster_id"], data["broadcaster_login"])
         self.prediction_id: str = data["id"]
         self.title: str = data["title"]
-        self.winning_outcome_id: str = data["winning_outcome_id"]
+        self.winning_outcome_id: str | None = data["winning_outcome_id"]
         self.outcomes: list[PredictionOutcome] = [PredictionOutcome(http, x) for x in data["outcomes"]]
         self.prediction_window: int = data["prediction_window"]
-        self.prediction_status: str = data["status"]
+        self.prediction_status: Literal["ACTIVE", "CANCELED", " LOCKED", "RESOLVED"] = data["status"]
         self.created_at: datetime.datetime = parse_timestamp(data["created_at"])
         self.ended_at: datetime.datetime | None = data.get("ended_at") and parse_timestamp(data["ended_at"])
         self.locked_at: datetime.datetime | None = data.get("locked_at") and parse_timestamp(data["locked_at"])
@@ -2120,7 +2364,7 @@ class PredictionOutcome:
 
 class Schedule:
     """
-    Represents a channel's stream schedule
+    Represents a channel's stream schedule.
 
     Attributes
     -----------
@@ -2128,7 +2372,7 @@ class Schedule:
         List of segments of a channel's stream schedule.
     user: :class:`~twitchio.PartialUser`
         The user of the channel associated to the schedule.
-    vacation: :class:`~twitchio.ScheduleVacation`
+    vacation: :class:`~twitchio.ScheduleVacation` | ``Null``
         Vacation details of stream schedule.
     """
 

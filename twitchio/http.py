@@ -64,7 +64,7 @@ class Route:
         route: str,
         body: bodyType,
         ratelimit_tokens: int = 1,
-        scope: tuple[str] | None = None,
+        scope: tuple[str, ...] | None = None,
         parameters: list[tuple[str, str | None]] | None = None,
         target: UserType | None = None,
     ) -> None:
@@ -320,7 +320,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         logger.error("Aborting request to route %s after 5 failed attempts", url)
         raise HTTPException("Unable to reach the twitch API")
 
-    def request_paginated_route(self, route: Route) -> HTTPAwaitableAsyncIterator[TokenHandlerT]:
+    def request_paginated_route(self, route: Route) -> HTTPAwaitableAsyncIterator:
         iterator = HTTPAwaitableAsyncIterator(self, lambda page: self.request_paginated_endpoint(route, page))
         return iterator
 
@@ -444,7 +444,14 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.extend(("id", str(id)) for id in ids)
 
         return self.request_paginated_route(
-            Route("GET", "channel_points/custom_rewards", None, parameters=params, target=target)
+            Route(
+                "GET",
+                "channel_points/custom_rewards",
+                None,
+                scope=("channel:read:redemptions", "channel:manage:redemptions"),
+                parameters=params,
+                target=target,
+            )
         )
 
     def update_reward(
@@ -546,7 +553,17 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.append(("prediction_id", prediction_id))
 
         return self.request_paginated_route(
-            Route("GET", "predictions", None, parameters=params, target=target, scope=("channel:manage:predictions",))
+            Route(
+                "GET",
+                "predictions",
+                None,
+                parameters=params,
+                target=target,
+                scope=(
+                    "channel:read:predictions",
+                    "channel:manage:predictions",
+                ),
+            )
         )
 
     def patch_prediction(
@@ -567,7 +584,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             body["winning_outcome_id"] = cast(str, winning_outcome_id)
 
         return self.request(
-            Route("PATCH", "predictions", body=body, target=target, scope=("channel:manage:prediction",))
+            Route("PATCH", "predictions", body=body, target=target, scope=("channel:manage:predictions",))
         )
 
     def post_prediction(
@@ -575,8 +592,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         target: BaseUser,
         broadcaster_id: int,
         title: str,
-        blue_outcome: str,
-        pink_outcome: str,
+        outcomes: list[str],
         prediction_window: int,
     ) -> Any:
         body = {
@@ -585,11 +601,9 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             "prediction_window": prediction_window,
             "outcomes": [
                 {
-                    "title": blue_outcome,
-                },
-                {
-                    "title": pink_outcome,
-                },
+                    "title": outcome_name,
+                }
+                for outcome_name in outcomes
             ],
         }
         return self.request(
@@ -812,14 +826,20 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             )
         )
 
-    def get_stream_markers(self, target: BaseUser, user_id: str | None = None, video_id: str | None = None) -> Any:
-        return self.request(
+    def get_stream_markers(
+        self, target: BaseUser, user_id: str | None = None, video_id: str | None = None
+    ) -> HTTPAwaitableAsyncIterator:
+        params: ParameterType = [("video_id", video_id)] if video_id else [("user_id", user_id)]
+        return self.request_paginated_route(
             Route(
                 "GET",
                 "streams/markers",
                 None,
-                parameters=[x for x in [("user_id", user_id), ("video_id", video_id)] if x[1] is not None],
-                scope=("user:edit:broadcast",),
+                parameters=params,
+                scope=(
+                    "user:read:broadcast",
+                    "channel:manage:broadcast",
+                ),
                 target=target,
             )
         )
@@ -877,34 +897,24 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     def get_channel_schedule(
         self,
         broadcaster_id: str,
+        target: BaseUser | None,
         segment_ids: list[str] | None = None,
         start_time: datetime.datetime | None = None,
-        utc_offset: int | None = None,
-        first: int = 20,
-    ) -> Any:
-        if first > 25 or first < 1:
-            raise ValueError("The parameter 'first' was malformed: the value must be less than or equal to 25")
+    ) -> HTTPAwaitableAsyncIterator:
         if segment_ids is not None and len(segment_ids) > 100:
             raise ValueError("segment_id can only have 100 entries")
+
         if start_time:
             start_time = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")  # type: ignore
-        if utc_offset:
-            utc_offset = str(utc_offset)  # type: ignore
+
         params: ParameterType = [
-            x
-            for x in [
-                ("broadcaster_id", broadcaster_id),
-                ("first", first),
-                ("start_time", start_time),
-                ("utc_offset", utc_offset),
-            ]
-            if x[1] is not None
+            x for x in [("broadcaster_id", broadcaster_id), ("start_time", start_time)] if x[1] is not None
         ]
 
         if segment_ids:
             params.extend(("id", id) for id in segment_ids)
 
-        return self.request(Route("GET", "schedule", None, parameters=params))
+        return self.request_paginated_route(Route("GET", "schedule", None, parameters=params, target=target))
 
     def get_channel_subscriptions(
         self, target: BaseUser, broadcaster_id: str, user_ids: list[str] | None = None
@@ -913,7 +923,16 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         if user_ids:
             params.extend(("user_id", u) for u in user_ids)
 
-        return self.request_paginated_route(Route("GET", "subscriptions", None, parameters=params, target=target))
+        return self.request_paginated_route(
+            Route("GET", "subscriptions", None, scope=("channel:read:subscriptions",), parameters=params, target=target)
+        )
+
+    def get_user_subscription(self, target: BaseUser, user_id: str, broadcaster_id: str) -> Awaitable[dict]:
+        params: ParameterType = [("user_id", user_id), ("broadcaster_id", broadcaster_id)]
+
+        return self.request(
+            Route("GET", "subscriptions", None, scope=("user:read:subscriptions",), parameters=params, target=target)
+        )
 
     def get_stream_tags(
         self, tag_ids: list[str] | None = None, target: BaseUser | None = None
@@ -929,42 +948,6 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     def get_channel_tags(self, broadcaster_id: str):
         return self.request(Route("GET", "streams/tags", None, parameters=[("broadcaster_id", broadcaster_id)]))
 
-    def put_replace_channel_tags(self, target: BaseUser, broadcaster_id: str, tag_ids: list[str] | None = None) -> Any:
-        return self.request(
-            Route(
-                "PUT",
-                "streams/tags",
-                parameters=[("broadcaster_id", broadcaster_id)],
-                body={"tag_ids": tag_ids},
-                target=target,
-                scope=("user:edit:broadcast",),
-            )
-        )
-
-    def post_follow_channel(self, target: BaseUser, from_id: str, to_id: str, notifications=False) -> Any:
-        return self.request(
-            Route(
-                "POST",
-                "users/follows",
-                None,
-                parameters=[("from_id", from_id), ("to_id", to_id), ("allow_notifications", str(notifications))],
-                scope=("user:edit:follows",),
-                target=target,
-            )
-        )
-
-    def delete_unfollow_channel(self, target: BaseUser, from_id: str, to_id: str) -> Any:
-        return self.request(
-            Route(
-                "DELETE",
-                "users/follows",
-                None,
-                parameters=[("from_id", from_id), ("to_id", to_id)],
-                scope=("user:edit:follows",),
-                target=target,
-            )
-        )
-
     def get_users(
         self, ids: list[int] | None, logins: list[str] | None, target: BaseUser | None = None
     ) -> HTTPAwaitableAsyncIterator:
@@ -977,7 +960,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(Route("GET", "users", None, parameters=params, target=target))
 
-    def get_user_follows(
+    def get_user_follows(  # FIXME: this is deprecated
         self, from_id: str | None = None, to_id: str | None = None, target: BaseUser | None = None
     ) -> HTTPAwaitableAsyncIterator:
         return self.request_paginated_route(
@@ -985,6 +968,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "GET",
                 "users/follows",
                 None,
+                scope=("moderator:read:followers",),
                 parameters=[x for x in [("from_id", from_id), ("to_id", to_id)] if x[1] is not None],
                 target=target,
             )
@@ -1003,13 +987,26 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                 "users/extensions",
                 None,
                 parameters=[("user_id", user_id)],
-                scope=("user:read:broadcast",),
+                scope=("user:read:broadcast", "user:edit:broadcast"),
                 target=target,
             )
         )
 
+    def get_user_active_extensions_client_token(self, user_id: str | None = None) -> Any:  # lol
+        return self.request(
+            Route(
+                "GET",
+                "users/extensions",
+                None,
+                parameters=[("user_id", user_id)],
+                scope=("user:read:broadcast", "user:edit:broadcast"),
+            )
+        )
+
     def put_user_extensions(self, target: BaseUser, data: ExtensionBuilderType) -> Any:
-        return self.request(Route("PUT", "users/extensions", target=target, body={"data": data}))
+        return self.request(
+            Route("PUT", "users/extensions", target=target, body={"data": data}, scope=("user:edit:broadcast",))
+        )
 
     def get_videos(
         self,
@@ -1034,6 +1031,8 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         if ids:
             params.extend(("id", id) for id in ids)
 
+        params = [p for p in params if p[1] is not None]
+
         return self.request_paginated_route(Route("GET", "videos", None, parameters=params, target=target))
 
     def delete_videos(self, target: BaseUser, ids: list[int]) -> Any:
@@ -1057,29 +1056,31 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request(Route("GET", "teams", None, parameters=params, target=target))
 
-    def get_channel_teams(self, broadcaster_id: str) -> Any:
+    def get_channel_teams(self, broadcaster_id: str, target: BaseUser | None) -> Any:
         params: ParameterType = [("broadcaster_id", broadcaster_id)]
-        return self.request(Route("GET", "teams/channel", None, parameters=params))
+        return self.request(Route("GET", "teams/channel", None, parameters=params, target=target))
 
     def get_polls(
-        self,
-        broadcaster_id: str,
-        target: BaseUser,
-        poll_ids: list[str] | None = None,
-        first: int | None = 20,
+        self, broadcaster_id: str, target: BaseUser, poll_ids: list[str] | None = None
     ) -> HTTPAwaitableAsyncIterator:
         if poll_ids and len(poll_ids) > 100:
             raise ValueError("poll_ids can only have up to 100 entries")
 
-        if first and (first > 25 or first < 1):
-            raise ValueError("first can only be between 1 and 20")
-
-        params: ParameterType = [("broadcaster_id", broadcaster_id), ("first", str(first))]
+        params: ParameterType = [("broadcaster_id", broadcaster_id)]
 
         if poll_ids:
             params.extend(("id", poll_id) for poll_id in poll_ids)
 
-        return self.request_paginated_route(Route("GET", "polls", None, parameters=params, target=target))
+        return self.request_paginated_route(
+            Route(
+                "GET",
+                "polls",
+                None,
+                parameters=params,
+                scope=("channel:read:polls", "channel:manage:polls"),
+                target=target,
+            )
+        )
 
     def post_poll(
         self,

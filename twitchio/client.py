@@ -65,7 +65,7 @@ class Client:
         An optional float to use to timeout channel joins. Defaults to 15.0.
     initial_channels: Optional[Union[list[:class:`str`], tuple[:class:`str`], :class:`callable`, :class:`coroutine`]]
         An optional list or tuple of channels to join on bot start. This may be a callable or coroutine,
-        but must return a :clas:`list` or :class:`tuple`.
+        but must return a :class:`list` or :class:`tuple`.
     shard_limit: :class:`int`
         The amount of channels per websocket. Defaults to 100 channels per socket.
     cache_size: Optional[:class:`int`]
@@ -163,7 +163,7 @@ class Client:
             Since this method is blocking it should be the last thing to be called.
             Anything under it will only execute after this method has completed.
 
-        .. info::
+        .. note::
 
             If you want to take more control over cleanup, see :meth:`close`.
         """
@@ -327,7 +327,7 @@ class Client:
 
         Returns
         --------
-        :class:`~twitchio.User`
+            :class:`~twitchio.User`
         """
         if not name and not id:
             raise ValueError("Expected a name or id")
@@ -341,7 +341,7 @@ class Client:
         data.set_adapter(lambda http, data: User(http, data))
         resp = await data
 
-        return resp[0]
+        return resp[0]  # FIXME: this IndexErrors when the user isnt found
 
     async def fetch_cheermotes(self, user_id: int | None = None, target: BaseUser | None = None) -> list[CheerEmote]:
         """|coro|

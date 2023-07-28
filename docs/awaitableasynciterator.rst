@@ -2,8 +2,8 @@
 
 .. _aai:
 
-The Awaitable Async Iterator
-=============================
+Awaitable Async Iterator
+==========================
 
 .. versionadded:: 3.0
 
