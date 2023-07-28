@@ -39,7 +39,7 @@ Usage
 ------
 
 The AAI can be used in two ways: an awaitable object, or an async iterator.
-All of the examples shown below include an implicit :class:`twitchio.Client` as ``client`, and :class:`twitchio.PartialUser` as ``user``.
+All of the examples shown below include an implicit :class:`twitchio.Client` as ``client``, and :class:`twitchio.PartialUser` as ``user``.
 They also assume you have a valid token with the correct scope(s) to make the calls. For more information on handling tokens, see :ref:`tokens`.
 
 Usage as an awaitable object
