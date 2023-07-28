@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Generic, Type
 import aiohttp
 from typing_extensions import Self
 
-from twitchio import Client as _BaseClient, BaseUser, utils
+from twitchio import BaseUser, Client as _BaseClient, utils
 from twitchio.http import HTTPHandler, Route, TokenHandlerT
 
 from . import models

@@ -247,7 +247,7 @@ class Token(BaseToken):
         if "login" not in data:
             raise InvalidToken("The token provided is an app access token. These cannot be used with the Token object")
 
-        from .models import PartialUser # circular imports
+        from .models import PartialUser  # circular imports
 
         self._scopes = data["scopes"]
         self._user = PartialUser(http, data["user_id"], data["login"])

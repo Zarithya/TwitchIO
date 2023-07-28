@@ -310,9 +310,7 @@ class Client:
 
         return await data
 
-    async def fetch_user(
-        self, name: str | None = None, id: int | None = None, target: BaseUser | None = None
-    ) -> User:
+    async def fetch_user(self, name: str | None = None, id: int | None = None, target: BaseUser | None = None) -> User:
         """|coro|
 
         Fetches a user from twitch. This is the same as :meth:`~Client.fetch_users`, but only returns one :class:`~twitchio.User`, instead of a list.
@@ -365,9 +363,7 @@ class Client:
         data = await self._http.get_cheermotes(str(user_id) if user_id else None, target=target)
         return [CheerEmote(self._http, x) for x in data["data"]]
 
-    async def search_channels(
-        self, query: str, *, live_only=False, target: BaseUser | None = None
-    ) -> list[SearchUser]:
+    async def search_channels(self, query: str, *, live_only=False, target: BaseUser | None = None) -> list[SearchUser]:
         """|coro|
 
         Searches channels for the given query
@@ -413,9 +409,7 @@ class Client:
 
         return await data
 
-    async def fetch_channel_info(
-        self, broadcaster_ids: list[int], target: BaseUser | None = None
-    ) -> list[ChannelInfo]:
+    async def fetch_channel_info(self, broadcaster_ids: list[int], target: BaseUser | None = None) -> list[ChannelInfo]:
         """|coro|
 
         Retrieve channel information from the API.

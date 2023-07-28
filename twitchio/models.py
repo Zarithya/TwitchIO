@@ -489,8 +489,7 @@ class PartialUser(BaseUser):
         data = await iterator
         return data[0] if data else None
 
-
-# FIXME: delete these
+    # FIXME: delete these
     async def follow(self, target: BaseUser, *, notifications=False) -> None:
         """|coro|
 

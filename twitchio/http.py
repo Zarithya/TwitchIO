@@ -275,7 +275,9 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                         return data
 
                     elif response.status == 429:
-                        logger.info("We are being ratelimited on route %s. Handled under bucket %s", url, bucket.bucket_name)
+                        logger.info(
+                            "We are being ratelimited on route %s. Handled under bucket %s", url, bucket.bucket_name
+                        )
                         await bucket.wait(route.ratelimit_tokens)
                         continue
 
@@ -927,9 +929,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     def get_channel_tags(self, broadcaster_id: str):
         return self.request(Route("GET", "streams/tags", None, parameters=[("broadcaster_id", broadcaster_id)]))
 
-    def put_replace_channel_tags(
-        self, target: BaseUser, broadcaster_id: str, tag_ids: list[str] | None = None
-    ) -> Any:
+    def put_replace_channel_tags(self, target: BaseUser, broadcaster_id: str, tag_ids: list[str] | None = None) -> Any:
         return self.request(
             Route(
                 "PUT",
