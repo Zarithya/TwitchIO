@@ -842,13 +842,24 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         game_id: str | None = None,
         language: str | None = None,
         title: str | None = None,
+        content_classification_labels: list[dict[str, str | bool]] | None = None,
+        is_branded_content: bool | None = None,
     ) -> Any:
-        assert any((game_id, language, title))
-        body = {
+        assert any((game_id, language, title, content_classification_labels, is_branded_content))
+
+        body: dict[str, str | bool | list[dict[str, str | bool]]] = {
             k: v
-            for k, v in {"game_id": game_id, "broadcaster_language": language, "title": title}.items()
+            for k, v in {
+                "game_id": game_id,
+                "broadcaster_language": language,
+                "title": title,
+                "is_branded_content": is_branded_content,
+            }.items()
             if v is not None
         }
+
+        if content_classification_labels is not None:
+            body["content_classification_labels"] = content_classification_labels
 
         return self.request(
             Route(
@@ -1309,3 +1320,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
     async def get_channel_chat_badges(self, broadcaster_id: str) -> Any:
         params: ParameterType = [("broadcaster_id", broadcaster_id)]
         return await self.request(Route("GET", "chat/badges", None, parameters=params))
+
+    async def get_content_classification_labels(self, locale: str) -> Any:
+        params: ParameterType = [("locale", locale)]
+        return await self.request(Route("GET", "content_classification_labels", None, parameters=params))

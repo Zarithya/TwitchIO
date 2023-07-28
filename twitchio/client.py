@@ -715,6 +715,25 @@ class Client:
         data = await self._http.get_global_chat_badges()
         return [ChatBadge(x) for x in data["data"]]
 
+    async def fetch_content_classification_labels(self, locale: str | None = None):
+        """|coro|
+
+        Fetches information about Twitch content classification labels.
+
+        Parameters
+        -----------
+        locale: Optional[:class:`str`]
+            Locale for the Content Classification Labels.
+            You may specify a maximum of 1 locale. Default: “en-US”
+
+        Returns
+        --------
+        List[:class:`twitchio.ContentClassificationLabel`]
+        """
+        locale = "en-US" if locale is None else locale
+        data = await self._http.get_content_classification_labels(locale)
+        return [ContentClassificationLabel(x) for x in data]
+
     async def event_shard_ready(self, number: int) -> None:
         """|coro|
 
