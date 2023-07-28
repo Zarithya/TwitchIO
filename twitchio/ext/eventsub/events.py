@@ -157,7 +157,7 @@ class BaseEvent(Protocol):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription
@@ -217,7 +217,7 @@ class RevocationEvent(BaseEvent):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription
@@ -249,7 +249,7 @@ class ChallengeEvent(BaseEvent):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription
@@ -271,8 +271,8 @@ class NotificationEvent(BaseEvent, Generic[D]):
 
     Attributes
     -----------
-    data: D
-        The data for this event. # FIXME: how to represent the generic.
+    data: :ref:`A Model <eventsub_models>`
+        The data for this event. This will change depending on the event in question
     subscription: :class:`Subscription`
         The subscription that triggered this event.
     meta: :class:`WebhookMeta` | :class:`WebsocketMeta`
@@ -283,7 +283,7 @@ class NotificationEvent(BaseEvent, Generic[D]):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription
@@ -319,7 +319,7 @@ class ReconnectEvent(BaseEvent):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription
@@ -350,7 +350,7 @@ class KeepaliveEvent(BaseEvent):
     transport: :class:`BaseTransport`
         The transport that received this event.
 
-        ..versionadded:: 3.0
+        .. versionadded:: 3.0
     """
 
     subscription: Subscription

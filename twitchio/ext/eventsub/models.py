@@ -88,6 +88,8 @@ __all__ = (
     "ChannelCustomRewardAdd",
     "ChannelCustomRewardUpdate",
     "ChannelCustomRewardRemove",
+    "ChannelShoutoutCreate",
+    "ChannelShoutoutReceive",
     "PartialReward",
     "StreamOnline",
     "StreamOffline",

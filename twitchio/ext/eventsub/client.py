@@ -49,7 +49,24 @@ class Client(Generic[TokenHandlerT]):
     The base EventSub client, which handles incoming eventsub data and dispatches it through its own event system.
     This client is completely standalone from the core TwitchIO :class:`~twitchio.Client`, and can operate without any attached :class:`~twitchio.Client`.
     When operating in standalone mode, a Token Handler is still required to manage token access for HTTP calls.
-    To operate Eventsub with a core :class:`twitchio.Client` attached, create this class using :func:`~twitchio.ext.eventsub.client.Client.from_client`.
+    To operate Eventsub with a core :class:`twitchio.Client` attached, create this class using :meth:`~twitchio.ext.eventsub.client.Client.from_client`.
+
+    
+    Parameters
+    -----------
+    transport: :class:`~twitchio.ext.eventsub.transport.WebsocketTransport` | :class:`~twitchio.ext.eventsub.transport.WebhookTransport`
+        The transport to use to receive notifications.
+        For more information on each transport, read the corresponding documentation.
+    token_handler: :class:`twitchio.tokens.TokenHandler`
+        The token handler to use for requesting tokens during HTTP requests.
+        When using the :class:`~twitchio.ext.eventsub.transport.WebsocketTransport`, this **must** have user tokens available for the targets of the subscriptions.
+        When using the :class:`~twitchio.ext.eventsub.transport.WebhookTransport`, this **must** have a client token available, as that is what Twitch requires for webhooks.
+    proxy: :class:`str` | ``None``
+        The optional proxy to use when making requests. This is passed directly to aiohttp.
+    proxy_auth: :class:`aiohttp.BasicAuth` | ``None``
+        The auth to give to the proxy. This is passed directly to aiohttp.
+    trace: :class:`aiohttp.TraceConfig` | ``None``
+        Trace information to configure aiohttp. This is passed directly to aiohttp.
     """
 
     __slots__ = ("_transport", "_core_client", "_http")
@@ -64,22 +81,6 @@ class Client(Generic[TokenHandlerT]):
     ) -> None:
         """
         Creates a Client that can interface with the Eventsub API system.
-
-        Parameters
-        -----------
-        transport: :class:`~twitchio.ext.eventsub.transport.WebsocketTransport` | :class:`~twitchio.ext.eventsub.transport.WebhookTransport`
-            The transport to use to receive notifications.
-            For more information on each transport, read the corresponding documentation.
-        token_handler: :class:`twitchio.tokens.TokenHandler`
-            The token handler to use for requesting tokens during HTTP requests.
-            When using the :class:`~twitchio.ext.eventsub.transport.WebsocketTransport`, this **must** have user tokens available for the targets of the subscriptions.
-            When using the :class:`~twitchio.ext.eventsub.transport.WebhookTransport`, this **must** have a client token available, as that is what Twitch requires for webhooks.
-        proxy: :class:`str` | ``None``
-            The optional proxy to use when making requests. This is passed directly to aiohttp.
-        proxy_auth: :class:`aiohttp.BasicAuth` | ``None``
-            The auth to give to the proxy. This is passed directly to aiohttp.
-        trace: :class:`aiohttp.TraceConfig` | ``None``
-            Trace information to configure aiohttp. This is passed directly to aiohttp.
         """
         self._transport: BaseTransport = transport
         self._core_client: _BaseClient | None = None
@@ -261,9 +262,8 @@ class Client(Generic[TokenHandlerT]):
 
         Returns
         --------
-        :class:`dict` The response from Twitch.
-        keys:
-        - data: :class:`list`[Subscription dict] - The subscription that was created.
+        :class:`dict` The response from Twitch with the following keys:
+        - data: :class:`list` [Subscription dict] - The subscription that was created.
         - total: :class:`int` - The total subscriptions created.
         - total_cost: :class:`int` - The sum of the cost of existing subscriptions.
         - max_total_cost: :class:`int` - The maximum allowed cost.
@@ -393,9 +393,8 @@ class Client(Generic[TokenHandlerT]):
 
         Returns
         --------
-        :class:`dict` The response from Twitch.
-        keys:
-        - data: :class:`list`[Subscription dict] - The subscription that was created.
+        :class:`dict` The response from Twitch with the following keys:
+        - data: :class:`list` [Subscription dict] - The subscription that was created.
         - total: :class:`int` - The total subscriptions created.
         - total_cost: :class:`int` - The sum of the cost of existing subscriptions.
         - max_total_cost: :class:`int` - The maximum allowed cost.

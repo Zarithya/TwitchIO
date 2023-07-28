@@ -2,7 +2,7 @@
    :title: TwitchIO Documentation
    :description: Documentation for TwitchIO, the asynchronous Python wrapper for Twitch.tv.
    :language: en-US
-   :keywords: twitchio, twitch, python api
+   :keywords: twitchio, twitch, python, api, twitchapi, pythontwitch
    :copyright: TwitchIO. 2017 - Present
 
 
@@ -14,14 +14,14 @@
 
    <p class="index-featuring">
 
-      <b>A fully asynchronous <a href="https://www.python.org/">Python</a> IRC, API, EventSub and PubSub library for Twitch.</b>
+      <b>A fully asynchronous Python wrapper around IRC, API, and EventSub for Twitch.</b>
 
       <h4>Featuring:</h4>
       <ul class="index-featuring-list">
          <li>Full asynchronous design.</li>
          <li>Covers 100% of the Twitch API.</li>
          <li>IRC Commands extension for creating powerful chat bots.</li>
-         <li>EventSub and PubSub support.</li>
+         <li>EventSub webhook and websocket support.</li>
          <li>Helper extensions for Music/Sounds and Background Tasks.</li>
          <li>Object orientated design with stateful objects.</li>
       </ul>
@@ -53,11 +53,11 @@
       <div class="index-apis-section">
          <b>TwitchIO Extension API's:</b>
          <ul class="index-featuring-list">
-            <li><a href="exts/commands.html" class="reference internal">Commands EXT</a>
-            <li><a href="exts/pubsub.html" class="reference internal">PubSub EXT</a>
-            <li><a href="exts/eventsub.html" class="reference internal">EventSub EXT</a>
-            <li><a href="exts/routines.html" class="reference internal">Routines EXT</a>
-            <li><a href="exts/sounds.html" class="reference internal">Sounds EXT</a>
+            <li><a href="exts/commands.html" class="reference internal">Commands</a>
+            <li><a href="exts/pubsub.html" class="reference internal">PubSub</a>
+            <li><a href="exts/eventsub/index.html" class="reference internal">EventSub</a>
+            <li><a href="exts/routines.html" class="reference internal">Routines</a>
+            <li><a href="exts/sounds.html" class="reference internal">Sounds</a>
          </ul>
       </div>
    </div>
@@ -67,7 +67,7 @@
    Consider joining the Official Discord server for a fast response to help.<br>
    <a href="https://discord.gg/RAKc3HF"><img src="https://discordapp.com/api/guilds/490948346773635102/widget.png?style=banner2"></a><br><br>
 
-   <b>For issues and contributing with the library, visit:</b> <a href"https://github.com/TwitchIO/TwitchIO">GitHub</a>
+   <b>For issues and contributing with the library, visit:</b> <a href"https://github.com/PythonistaGuild/TwitchIO">GitHub</a>
 
 
 .. rst-class:: index-display-none
@@ -103,9 +103,9 @@
 
    <h3 class="index-section-header">Changelog</h3>
    <hr class="featuring-hr">
-   Keep upto date with the changelog.<br><br>
+   Keep up to date with the changelog.<br><br>
 
-.. rst-class:: index-changelog
+.. rst-class:: index-changelogs
 .. toctree::
    :maxdepth: 2
    :caption: Changelog
