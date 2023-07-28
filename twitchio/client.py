@@ -167,12 +167,13 @@ class Client:
 
             If you want to take more control over cleanup, see :meth:`close`.
         """
+
         async def _runner():
             try:
                 await self.start()
             except KeyboardInterrupt:
                 await self.close()
-        
+
         asyncio.run(_runner())
 
     async def start(self) -> None:
@@ -270,7 +271,7 @@ class Client:
     def get_partial_user(self, user_id: int | str, user_name: str | None) -> PartialUser:
         """
         Creates a PartialUser with the provided user_id and user_name.
-        
+
         Parameters
         -----------
         user_id: :class:`int` | :class:`str`

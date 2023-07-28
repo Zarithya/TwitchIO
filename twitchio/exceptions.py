@@ -56,6 +56,7 @@ class JoinFailed(TwitchIOException):
 class AuthenticationError(TwitchIOException):
     pass
 
+
 class NoTokenAvailable(AuthenticationError):
     pass
 

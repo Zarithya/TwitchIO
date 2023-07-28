@@ -251,7 +251,9 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         try:
             for attempt in range(5):
-                logger.debug("Sending request attempt %s to %s %s with payload %s", attempt, route.method, url, route.body)
+                logger.debug(
+                    "Sending request attempt %s to %s %s with payload %s", attempt, route.method, url, route.body
+                )
                 async with cast(aiohttp.ClientSession, self._session).request(
                     route.method, url, headers=headers, data=route.body
                 ) as response:
@@ -282,8 +284,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                         if not is_fresh_token:
                             if isinstance(token, Token):
                                 self.token_handler._evict(token)
-                            
-                            logger.debug("Attempting to get a fresh token for target %s on route %s", route.target, route.url.path)
+
+                            logger.debug(
+                                "Attempting to get a fresh token for target %s on route %s",
+                                route.target,
+                                route.url.path,
+                            )
                             token = await self._get_token_from_route(route, no_cache=True)
                             raw_token = await token.get(
                                 self, self.token_handler, cast(aiohttp.ClientSession, self._session)
@@ -297,10 +303,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
                     else:
                         logger.debug(
-                            "Received unknown response code %i from route %s %s",
-                            response.status,
-                            route.method,
-                            url
+                            "Received unknown response code %i from route %s %s", response.status, route.method, url
                         )
                         await bucket.release()
                         raise HTTPResponseException(response, data)  # type: ignore
@@ -738,7 +741,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(
             Route(
-                "GET", "moderation/moderators/events", None, parameters=params, target=target, scope=("moderation:read",)
+                "GET",
+                "moderation/moderators/events",
+                None,
+                parameters=params,
+                target=target,
+                scope=("moderation:read",),
             )
         )
 

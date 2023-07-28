@@ -23,7 +23,7 @@ SOFTWARE.
 
 import datetime
 import inspect
-from typing import Any, Callable, Coroutine, TypeVar, Awaitable
+from typing import Any, Awaitable, Callable, Coroutine, TypeVar
 
 import iso8601
 
@@ -68,8 +68,10 @@ def parse_timestamp(timestamp: str) -> datetime.datetime:
     """
     return iso8601.parse_date(timestamp, datetime.timezone.utc)
 
+
 T = TypeVar("T")
 T_cb = TypeVar("T_cb", bound=Callable[..., Any])
+
 
 def copy_doc(fn: Callable[..., Any]) -> Callable[[T_cb], T_cb]:
     """
@@ -80,14 +82,16 @@ def copy_doc(fn: Callable[..., Any]) -> Callable[[T_cb], T_cb]:
     fn: Callable
         The function to copy from.
     """
+
     def deco(to: T_cb) -> T_cb:
         if not fn.__doc__:
             raise TypeError(f"{fn!r} has no docstring")
-        
+
         to.__doc__ = fn.__doc__
         return to
-    
+
     return deco
+
 
 async def maybe_coro(_fn: Callable[..., Coroutine[Any, Any, T] | Callable[..., T]], /, *args, **kwargs) -> T:
     """
@@ -107,5 +111,5 @@ async def maybe_coro(_fn: Callable[..., Coroutine[Any, Any, T] | Callable[..., T
 
     if inspect.isawaitable(resp):
         resp = await resp
-    
+
     return resp

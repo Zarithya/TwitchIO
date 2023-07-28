@@ -236,7 +236,9 @@ class WebsocketShard:
 
         self._connect_kwargs = connect_kwargs or {}
 
-    async def connect(self, ignore_subscription: WebsocketSubscription | None, reconnect_url: str | None = None) -> None:
+    async def connect(
+        self, ignore_subscription: WebsocketSubscription | None, reconnect_url: str | None = None
+    ) -> None:
         if not self._subscriptions:
             return  # TODO: should this raise?
 
@@ -295,8 +297,8 @@ class WebsocketShard:
                     await self.connect(None, event.reconnect_url)
                     await sock.close(code=aiohttp.WSCloseCode.GOING_AWAY, message=b"Reconnecting")
                     return
-            
-            except TypeError: # happens when we get sent a null frame after getting disconnected
+
+            except TypeError:  # happens when we get sent a null frame after getting disconnected
                 return
 
             except asyncio.TimeoutError:

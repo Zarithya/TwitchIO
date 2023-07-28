@@ -51,7 +51,7 @@ class Client(Generic[TokenHandlerT]):
     When operating in standalone mode, a Token Handler is still required to manage token access for HTTP calls.
     To operate Eventsub with a core :class:`twitchio.Client` attached, create this class using :meth:`~twitchio.ext.eventsub.client.Client.from_client`.
 
-    
+
     Parameters
     -----------
     transport: :class:`~twitchio.ext.eventsub.transport.WebsocketTransport` | :class:`~twitchio.ext.eventsub.transport.WebhookTransport`
@@ -125,10 +125,10 @@ class Client(Generic[TokenHandlerT]):
     async def stop(self) -> None:
         """
         Stops the Eventsub Client, which tells the underlying transport to stop listening for events, and clean up after itself.
-        
+
         .. note::
             The client cannot be restarted once it has been stopped.
-        
+
         """
         await self._transport.stop()
 
@@ -213,28 +213,32 @@ class Client(Generic[TokenHandlerT]):
 
     async def event_channel_poll_end(self, event: NotificationEvent[models.ChannelPollEnd]) -> None:
         ...
-    
+
     async def event_channel_reward_add(self, event: NotificationEvent[models.ChannelCustomRewardAdd]) -> None:
         ...
 
     async def event_channel_reward_update(self, event: NotificationEvent[models.ChannelCustomRewardUpdate]) -> None:
         ...
-    
+
     async def event_channel_reward_remove(self, event: NotificationEvent[models.ChannelCustomRewardRemove]) -> None:
         ...
-        
-    async def event_channel_reward_redemption(self, event: NotificationEvent[models.ChannelCustomRewardRedemptionAdd]) -> None:
+
+    async def event_channel_reward_redemption(
+        self, event: NotificationEvent[models.ChannelCustomRewardRedemptionAdd]
+    ) -> None:
         ...
-    
-    async def event_channel_reward_redemption_update(self, event: NotificationEvent[models.ChannelCustomRewardRedemptionUpdate]) -> None:
+
+    async def event_channel_reward_redemption_update(
+        self, event: NotificationEvent[models.ChannelCustomRewardRedemptionUpdate]
+    ) -> None:
         ...
-    
+
     async def event_channel_shoutout_create(self, event: NotificationEvent[models.ChannelShoutoutCreate]) -> None:
         ...
-    
+
     async def event_channel_shoutout_receive(self, event: NotificationEvent[models.ChannelShoutoutReceive]) -> None:
         ...
-    
+
     async def event_stream_online(self, event: NotificationEvent[models.StreamOnline]) -> None:
         ...
 
@@ -247,11 +251,13 @@ class Client(Generic[TokenHandlerT]):
         self, topic: Type[models.AllModels], broadcaster: PartialUser
     ) -> Awaitable[HTTPSubscribeResponse]:
         return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id)}, broadcaster)
-    
+
     def _subscribe_with_moderator(
-            self, topic: Type[models.AllModels], broadcaster: PartialUser, moderator: PartialUser
+        self, topic: Type[models.AllModels], broadcaster: PartialUser, moderator: PartialUser
     ) -> Awaitable[HTTPSubscribeResponse]:
-        return self._transport.create_subscription(topic, {"broadcaster_user_id": str(broadcaster.id), "moderator_user_id": str(moderator.id)}, moderator)
+        return self._transport.create_subscription(
+            topic, {"broadcaster_user_id": str(broadcaster.id), "moderator_user_id": str(moderator.id)}, moderator
+        )
 
     def subscribe_channel_bans(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         """
@@ -369,20 +375,22 @@ class Client(Generic[TokenHandlerT]):
     @utils.copy_doc(subscribe_channel_bans)
     def subscribe_channel_prediction_end(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelPredictionEnd, broadcaster)
-    
+
     @utils.copy_doc(subscribe_channel_bans)
     def subscribe_channel_reward_add(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
-        return self._subscribe_with_broadcaster(models.ChannelCustomRewardAdd, broadcaster)   
-     
+        return self._subscribe_with_broadcaster(models.ChannelCustomRewardAdd, broadcaster)
+
     @utils.copy_doc(subscribe_channel_bans)
     def subscribe_channel_reward_update(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCustomRewardUpdate, broadcaster)
-        
+
     @utils.copy_doc(subscribe_channel_bans)
     def subscribe_channel_reward_remove(self, broadcaster: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_broadcaster(models.ChannelCustomRewardRemove, broadcaster)
-        
-    def subscribe_channel_reward_redeem(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+
+    def subscribe_channel_reward_redeem(
+        self, broadcaster: PartialUser, moderator: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
         """
         Parameters
         -----------
@@ -400,16 +408,21 @@ class Client(Generic[TokenHandlerT]):
         - max_total_cost: :class:`int` - The maximum allowed cost.
         """
         return self._subscribe_with_moderator(models.ChannelCustomRewardRedemptionAdd, broadcaster, moderator)
-    
+
     @utils.copy_doc(subscribe_channel_reward_redeem)
-    def subscribe_channel_reward_redeem_update(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_reward_redeem_update(
+        self, broadcaster: PartialUser, moderator: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelCustomRewardRedemptionUpdate, broadcaster, moderator)
-    
+
     @utils.copy_doc(subscribe_channel_reward_redeem)
-    def subscribe_channel_shoutout_create(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_shoutout_create(
+        self, broadcaster: PartialUser, moderator: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelShoutoutCreate, broadcaster, moderator)
 
     @utils.copy_doc(subscribe_channel_reward_redeem)
-    def subscribe_channel_shoutout_receive(self, broadcaster: PartialUser, moderator: PartialUser) -> Awaitable[HTTPSubscribeResponse]:
+    def subscribe_channel_shoutout_receive(
+        self, broadcaster: PartialUser, moderator: PartialUser
+    ) -> Awaitable[HTTPSubscribeResponse]:
         return self._subscribe_with_moderator(models.ChannelShoutoutReceive, broadcaster, moderator)
-    
