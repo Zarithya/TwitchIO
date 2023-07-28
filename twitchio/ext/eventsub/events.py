@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, TypeVar, cast
 
 from typing_extensions import Self
 
@@ -175,7 +175,7 @@ class BaseEvent(Protocol):
         self.subscription = Subscription(data["subscription"], transport)
         self.meta = WebhookMeta(headers)
         if "challenge" in data:
-            self.prepare(data)
+            self.prepare(cast(dict, data))
         else:
             self.prepare(data["payload"])
         return self
