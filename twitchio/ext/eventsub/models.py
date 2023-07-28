@@ -100,7 +100,8 @@ __all__ = (
 
 
 def _transform_user(transport: BaseTransport, prefix: str, data: Mapping[str, Any]) -> PartialUser:
-    ...
+    p: PartialUser = PartialUser(transport.client._http, data[prefix + "id"], data[prefix + "name"])
+    return p
 
 
 class ImageLinks:
