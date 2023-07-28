@@ -488,42 +488,7 @@ class PartialUser(BaseUser):
         iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
         data = await iterator
         return data[0] if data else None
-
-    # FIXME: delete these
-    async def follow(self, target: BaseUser, *, notifications=False) -> None:
-        """|coro|
-
-        Follows the target user. Requires an OAuth token with the ``user:edit:follows`` scope.
-
-        Parameters
-        -----------
-        target: Union[:class:`User`, :class:`PartialUser`]
-            The user to follow
-        notifications: :class:`bool`
-            Whether to allow push notifications when the target user goes live. Defaults to False
-
-        Returns
-            ``None``
-        """
-        await self._http.post_follow_channel(
-            self, from_id=str(self.id), to_id=str(target.id), notifications=notifications
-        )
-
-    async def unfollow(self, target: User | PartialUser) -> None:
-        """|coro|
-
-        Unfollows the target user. Requires an OAuth token with the ``user:edit:follows`` scope.
-
-        Parameters
-        -----------
-        target: Union[:class:`User`, :class:`PartialUser`]
-            The user to unfollow
-
-        Returns
-            ``None``
-        """
-        await self._http.delete_unfollow_channel(self, to_id=str(target.id), from_id=str(self.id))
-
+    
     async def fetch_subscriptions(
         self, userids: list[int] | None = None
     ) -> HTTPAwaitableAsyncIterator[SubscriptionEvent]:
