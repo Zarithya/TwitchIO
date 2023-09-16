@@ -433,16 +433,18 @@ class Client:
         except HTTPException as e:
             raise HTTPException("Incorrect channel ID provided") from e
 
-    async def fetch_clips(self, ids: list[str], target: BaseUser | None = None) -> list[Clip]:
+    async def fetch_clips(self, ids: list[str], game_id: str | None = None, target: BaseUser | None = None) -> list[Clip]:
         """|coro|
 
-        Fetches clips by clip id.
+        Fetches clips by clip id or game id.
         To fetch clips by user id, use :meth:`twitchio.BaseUser.fetch_clips`
 
         Parameters
         -----------
         ids: list[:class:`str`]
-            A list of clip ids
+            A list of clip ids.
+        game_id: :class:`str`
+            A game id.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler
 
@@ -451,7 +453,7 @@ class Client:
             list[:class:`twitchio.Clip`]
         """
 
-        data: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(ids=ids, target=target)
+        data: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(ids=ids, game_id=game_id, target=target)
         data.set_adapter(lambda http, data: Clip(http, data))
 
         return await data

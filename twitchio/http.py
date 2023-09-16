@@ -647,12 +647,14 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         started_at: datetime.datetime | None = None,
         ended_at: datetime.datetime | None = None,
         target: BaseUser | None = None,
+        is_featured: bool | None = None,
     ) -> HTTPAwaitableAsyncIterator:
         params = [
             ("broadcaster_id", broadcaster_id),
             ("game_id", game_id),
             ("started_at", started_at.isoformat() if started_at else None),
             ("ended_at", ended_at.isoformat() if ended_at else None),
+            ("is_featured", str(is_featured) if is_featured is not None else None),
         ]
         if ids:
             params.extend(("id", id) for id in ids)
