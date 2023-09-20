@@ -196,7 +196,7 @@ class PartialUser(BaseUser):
         data = await self._http.get_channel_tags(str(self.id))
         return [Tag(self._http, x) for x in data["data"]]
 
-    async def fetch_custom_rewards(
+    def fetch_custom_rewards(
         self, *, only_manageable=False, ids: list[int] | None = None, force=False
     ) -> HTTPAwaitableAsyncIterator[CustomReward]:
         """|aai|
