@@ -24,10 +24,12 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import sys
 import traceback
+import uuid
 from collections.abc import Callable, Coroutine
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from twitchio.http import HTTPAwaitableAsyncIterator, HTTPHandler
 
@@ -46,6 +48,26 @@ _initial_channels_T = list[str] | tuple[str] | Callable[[], list[str]] | Corouti
 
 __all__ = ("Client",)
 
+logger = logging.getLogger("twitchio.client")
+
+class Event:
+    __slots__ = ("_callback", "event", "cb_uuid")
+
+    def __init__(self, callback: Callable[[Any], Coroutine[Any, Any, None]], event: str, callback_uuid: uuid.UUID) -> None:
+        self._callback = callback
+        
+        self.event = event
+        self.cb_uuid = callback_uuid
+    
+    def __call__(self, arg: Any) -> Coroutine[Any, Any, None]:
+        return self._callback(arg)
+    
+    def __hash__(self) -> int:
+        return hash(self.cb_uuid.int)
+    
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Event) and other.cb_uuid == self.cb_uuid
+    
 
 class Client:
     """THe main Twitch HTTP and IRC Client.
@@ -105,7 +127,7 @@ class Client:
         self._is_closed = False
         self._has_acquired = False
 
-        self._events = {}
+        self._events: dict[str, set[Event]] = {}
 
     async def __aenter__(self):
         await self.setup()
@@ -116,6 +138,123 @@ class Client:
         self._has_acquired = False
         if not self._is_closed:
             await self.close()
+    
+    def add_event_listener(self, event_name: str, callback: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
+        """
+        Adds an event listener to the Client.
+        The event name must not have whitespace, and must not start with ``event_``.
+
+        Parameters
+        -----------
+        event_name: :class:`str`
+            The event to dispatch this listener for.
+        callback: Coroutine
+            An async function that takes one argument. It will be called whenever the event is dispatched.
+        
+        .. versionchanged:: 3.0
+            This is now publicly documented.
+        
+        Returns
+        --------
+            ``Event``
+                Not much use anywhere except removing events, which typically won't need to be done manually.
+        """
+        if " " in event_name or event_name.startswith("event_"):
+            raise ValueError("Invalid event name: contains whitespace or starts with 'event_'")
+        
+        if event_name not in self._events:
+            self._events[event_name] = set()
+        
+        cb_uuid = uuid.uuid4()
+        container = Event(callback, event_name, cb_uuid)
+        
+        try:
+            callback._event = container
+        except:
+            logger.debug("Could not add reference to event back to callback for function %s. This may make removing it difficult.", repr(callback))
+        
+        self._events[event_name].add(container)
+
+        return container
+
+    def remove_event_listener(self, listener: Event | Callable) -> None:
+        """
+        Removes an event listener from the Client.
+        You must pass an ``Event`` or a function that has been marked as an event (usually with the :meth:`@client.listener <Client.listener>` decorator.)
+
+        Parameters
+        -----------
+        listener: ``Event`` | ``Coroutine``
+            The listener to remove, or its corresponding ``Event`` container.
+        
+        .. versionchanged:: 3.0
+            This is now publicly documented.
+        """
+        if not isinstance(listener, Event):
+            try:
+                event_ = listener._event
+            except AttributeError:
+                raise ValueError("The given function is not an event.")
+
+        else:
+            event_ = listener
+        
+        name = event_.event
+        if name not in self._events:
+            raise ValueError("The event is registered to a nonexistant event name.")
+        
+        try:
+            self._events[name].remove(event_)
+        except KeyError as e:
+            raise ValueError("The event is not registered.") from e
+    
+    @overload
+    def listener(self, name_or_function: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
+        ...
+    
+    @overload
+    def listener(self, name_or_function: str) -> Callable[[Callable[[Any], Coroutine[Any, Any, None]]], Event]:
+        ...
+    
+    def listener(self, name_or_function: str | Callable[[Any], Coroutine[Any, Any, None]]) -> Callable[[Callable[[Any], Coroutine[Any, Any, None]]], Event] | Event:
+        """
+        A decorator for adding event listeners to the Client. This can be used in two different ways.
+
+        A)
+        
+        .. code-block:: python
+
+            @client.listener
+            async def event_message(message: twitchio.Message) -> None:
+                ...
+        
+        Or, B)
+
+        .. code-block:: python
+
+            @client.listener("message") # or "event_message"
+            async def this_is_a_message_listener(message: twitchio.Message) -> None:
+                ...
+        
+        .. versionchanged:: 3.0
+            This can now be used without the name in the decorator.
+        
+        Returns
+        --------
+            ``Event``
+                Turns the function into an ``Event``. The function can still be called like normal, but has some special properties for dispatching events to it.
+        """
+        if callable(name_or_function):
+            name = name_or_function.__name__.removeprefix("event_")
+            event = self.add_event_listener(name, name_or_function)
+            return event
+
+        else:
+            def wraps(fn: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
+                event = self.add_event_listener(name_or_function.removeprefix("event_"), fn)
+                return event
+
+            return wraps
 
     async def _shard(self):
         if inspect.iscoroutinefunction(self._initial_channels):
