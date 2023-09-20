@@ -177,3 +177,92 @@ The following functions have had edits made to them:
 - :meth:`PartialUser.update_chat_settings`
     - Removed the ``token`` parameter.
     - Changed the ``moderator_id`` parameter to ``moderator`` of type :class:`BaseUser`
+
+
+Client Changes
+---------------
+The following changes have been made to :class:`~twitchio.Client` 
+(and :class:`ext.commands.Bot <twitchio.ext.commands.Bot>` by extension).
+
+:class:`~twitchio.Client` now takes a required parameter: ``token_handler``. Please see :ref:`token handlers <tokens>` for more information.
+
+Additions
+++++++++++
+
+- :meth:`Client.fetch_user`
+    Shorthand to :meth:`Client.fetch_users` that returns ``User | None``.
+
+Removals
++++++++++
+
+- :meth:`Client.from_client_credentials` (no longer needed, see :ref:`token handling <tokens>`).
+- :meth:`Client.connect` (use :meth:`Client.start` instead).
+- :meth:`Client.fetch_channel` (use :meth:`Client.fetch_channels` instead).
+- :meth:`Client.fetch_webhook_subscriptions` (webhooks are gone).
+
+Edits
+++++++
+
+- :meth:`Client.run`
+    - Now uses :func:`asyncio.run` as the underlying runner.
+
+- :meth:`Client.add_event` -> :meth:`Client.add_event_listener`
+    - This is now documented for public use.
+
+- :meth:`Client.remove_event` -> :meth:`Client.remove_event_listener`
+    - This is now documented for public use.
+
+- :meth:`@Client.event <Client.event>` -> :meth:`@Client.listener <Client.listener>`
+    - Renamed function for clarity.
+    - The decorator can be used without the event name in it now (see the :meth:`example <Client.listener>`).
+
+- :meth:`Client.fetch_users`
+    - This function now returns an :ref:`aai`.
+    - This function no longer has a cache.
+    - Removed the ``force`` parameter.
+
+- :meth:`Client.create_user` -> :meth:`Client.get_partial_user`
+    - Renamed function for clarity.
+
+- :meth:`Client.fetch_channels` -> :meth:`Client.fetch_channel_info`
+    - Renamed function for clarity.
+
+- :meth:`Client.fetch_videos`
+    - This function now returns an :ref:`aai`.
+    - Parameters have been reordered to match typical usage.
+
+- :meth:`Client.fetch_chatter_colors`
+    - Removed the ``token`` parameter.
+
+- :meth:`Client.update_chatter_color`
+    - Removed the ``token`` parameter.
+    - Removed the ``user_id`` parameter.
+    - Added the ``target`` parameter (combines the removed parameters).
+    - The ``color`` parameter now specifies Literals that can be used, along with more specific docstrings.
+
+- :meth:`Client.fetch_games`
+    - This function now returns an :ref:`aai`.
+    - Added the ``target`` parameter.
+
+- :meth:`Client.fetch_streams`
+    - This function now returns an :ref:`aai`.
+    - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
+
+- :meth:`Client.fetch_top_games`
+    - This function now returns an :ref:`aai`.
+    - Added the ``target`` parameter.
+
+- :meth:`Client.fetch_tags`
+    - This function now returns an :ref:`aai`.
+    - Added the ``target`` parameter.
+
+- :meth:`Client.fetch_team`
+    - Added the ``target`` parameter.
+
+- :meth:`Client.delete_videos`
+    - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
+
+- :meth:`Client.fetch_global_chat_badges`
+    - Added the ``target`` parameter.
