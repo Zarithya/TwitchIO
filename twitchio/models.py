@@ -2850,7 +2850,7 @@ class ChatBadge:
     -----------
     set_id: :class:`str`
         An ID that identifies this set of chat badges. For example, Bits or Subscriber.
-    versions: List[]
+    versions: List[:class:`ChatBadgeVersion`]
         The list of chat badges in this set.
     """
 
@@ -2858,13 +2858,13 @@ class ChatBadge:
 
     def __init__(self, data: dict) -> None:
         self.set_id: str = data["set_id"]
-        self.versions: list[ChatBadgeVersions] = [ChatBadgeVersions(version_data) for version_data in data["versions"]]
+        self.versions: list[ChatBadgeVersion] = [ChatBadgeVersion(version_data) for version_data in data["versions"]]
 
     def __repr__(self):
         return f"<ChatBadge set_id={self.set_id} versions={self.versions}>"
 
 
-class ChatBadgeVersions:
+class ChatBadgeVersion:
     """
     Represents the different versions of the chat badge.
 
@@ -2882,9 +2882,9 @@ class ChatBadgeVersions:
         The title of the badge.
     description: :class:`str`
         The description of the badge.
-    click_action: Optional[:class:`str`]
+    click_action: :class:`str` | ``None``
         The action to take when clicking on the badge. This can be None if no action is specified
-    click_url: Optional[:class:`str`]
+    click_url: :class:`str` | ``None``
         The URL to navigate to when clicking on the badge. This can be None if no URL is specified.
     """
 

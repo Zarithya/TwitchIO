@@ -27,13 +27,13 @@ import copy
 import datetime
 import logging
 from collections.abc import Awaitable, Callable, Generator
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar, cast, Iterable
 
 import aiohttp
 import multidict
 from yarl import URL
 
-from .exceptions import HTTPException, HTTPResponseException, RefreshFailure, Unauthorized
+from .exceptions import HTTPException, HTTPResponseException, RefreshFailure, Unauthorized, BadRequest
 from .limiter import HTTPRateLimiter, RateLimitBucket
 from .tokens import BaseToken, BaseTokenHandler, Token
 from .utils import MISSING, json_dumper, json_loader
@@ -322,13 +322,17 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
                         await bucket.release()
                         raise Unauthorized(response, data)  # type: ignore
+                    
+                    elif response.status == 400:
+                        logger.debug("Received Bad Request response from %s", route.url.path)
+                        raise BadRequest(response, data) # type: ignore
 
                     else:
                         logger.debug(
                             "Received unknown response code %i from route %s %s", response.status, route.method, url
                         )
                         await bucket.release()
-                        raise HTTPResponseException(response, data)  # type: ignore
+                        raise HTTPResponseException(response, data, "The request failed. For more information, please see the raw_data attribute on this error.")  # type: ignore
 
         except aiohttp.ClientError as err:
             raise HTTPException("Unable to reach the twitch API") from err
@@ -817,14 +821,15 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         user_ids: list[int] | None = None,
         user_logins: list[str] | None = None,
         languages: list[str] | None = None,
+        type: Literal["all", "live"] = "all",
         target: BaseUser | None = None,
     ) -> HTTPAwaitableAsyncIterator:
-        params = []
+        params: ParameterType = [("type", type)]
         if game_ids:
-            params.extend(("game_id", g) for g in game_ids)
+            params.extend(("game_id", str(g)) for g in game_ids)
 
         if user_ids:
-            params.extend(("user_id", u) for u in user_ids)
+            params.extend(("user_id", str(u)) for u in user_ids)
 
         if user_logins:
             params.extend(("user_login", l) for l in user_logins)
@@ -1054,13 +1059,10 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(Route("GET", "videos", None, parameters=params, target=target))
 
-    def delete_videos(self, target: BaseUser, ids: list[int]) -> Any:
+    def delete_videos(self, target: BaseUser, ids: Iterable[int]) -> Any:
         params: ParameterType = [("id", str(x)) for x in ids]
 
         return self.request(Route("DELETE", "videos", None, parameters=params, target=target))
-
-    def get_webhook_subs(self) -> Any:  # TODO is this paginated?
-        return self.request(Route("GET", "webhooks/subscriptions", None))
 
     def get_teams(self, team_name: str | None = None, team_id: int | None = None, target: BaseUser | None = None):
         params: ParameterType
@@ -1206,8 +1208,8 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request(Route("PATCH", "chat/settings", data, parameters=params, target=target))
 
-    async def get_global_chat_badges(self) -> Any:
-        return await self.request(Route("GET", "chat/badges/global", None))
+    async def get_global_chat_badges(self, target: BaseUser | None = None) -> Any:
+        return await self.request(Route("GET", "chat/badges/global", None, target=target))
 
         ######### NEW STUFF TO UPDATE
 
@@ -1231,8 +1233,8 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             params.append(("message_id", message_id))
         return await self.request(Route("DELETE", "moderation/chat", None, parameters=params, target=target))
 
-    async def put_user_chat_color(self, target: BaseUser, user_id: str, color: str):
-        params = [("user_id", user_id), ("color", color)]
+    async def put_user_chat_color(self, target: BaseUser, color: str):
+        params = [("user_id", target.id), ("color", color)]
         return await self.request(Route("PUT", "chat/color", None, parameters=params, target=target))
 
     async def get_user_chat_color(self, user_ids: list[int], target: BaseUser | None = None):
@@ -1337,9 +1339,9 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
         ]
         return self.request(Route("POST", "chat/shoutouts", None, parameters=params, target=target))
 
-    async def get_channel_chat_badges(self, broadcaster_id: str) -> Any:
+    async def get_channel_chat_badges(self, broadcaster_id: str, target: BaseUser | None = None) -> Any:
         params: ParameterType = [("broadcaster_id", broadcaster_id)]
-        return await self.request(Route("GET", "chat/badges", None, parameters=params))
+        return await self.request(Route("GET", "chat/badges", None, parameters=params, target=target))
 
     async def get_content_classification_labels(self, locale: str) -> Any:
         params: ParameterType = [("locale", locale)]

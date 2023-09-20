@@ -82,8 +82,12 @@ class HTTPResponseException(HTTPException):
         self.status = response.status
         self._response = response
         self.message = message or data["message"]
+        self.raw_data: ErrorType = data
+
         super().__init__(f"{self.status}: {self.message}")
 
+class BadRequest(HTTPResponseException):
+    pass
 
 class Unauthorized(HTTPResponseException):
     pass
