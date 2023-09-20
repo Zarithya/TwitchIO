@@ -300,7 +300,7 @@ class PartialUser(BaseUser):
         data = await self._http.post_create_clip(self, self.id, has_delay)
         return data["data"][0]
 
-    def fetch_clips(self) -> HTTPAwaitableAsyncIterator[Clip]:
+    def fetch_clips(self, started_at: datetime.datetime | None = None, ended_at: datetime.datetime | None = None, is_featured: bool | None = None) -> HTTPAwaitableAsyncIterator[Clip]:
         """|aai|
 
         Fetches clips from the api. This will only return clips created by this user.
@@ -313,7 +313,7 @@ class PartialUser(BaseUser):
             :class:`~twitchio.AwaitableAsyncIterator`[:class:`~twitchio.Clip`]
         """
 
-        iterator: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(self.id)
+        iterator: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(self.id, started_at=started_at, ended_at=ended_at, is_featured=is_featured)
         iterator.set_adapter(lambda handler, data: Clip(handler, data))
 
         return iterator
@@ -1358,6 +1358,8 @@ class Clip:
         When the clip was created.
     thumbnail_url: :class:`str`
         The url of the clip thumbnail.
+    is_featured: :class:`bool`
+        Indicates if the clip is featured or not.
     """
 
     __slots__ = (
@@ -1373,6 +1375,7 @@ class Clip:
         "views",
         "created_at",
         "thumbnail_url",
+        "is_featured",
     )
 
     def __init__(self, http: HTTPHandler, data: dict) -> None:
@@ -1388,6 +1391,7 @@ class Clip:
         self.views: int = data["view_count"]
         self.created_at: datetime.datetime = parse_timestamp(data["created_at"])
         self.thumbnail_url: str = data["thumbnail_url"]
+        self.is_featured: bool = data["is_featured"]
 
     def __repr__(self) -> str:
         return f"<Clip id={self.id} broadcaster={self.broadcaster} creator={self.creator}>"
