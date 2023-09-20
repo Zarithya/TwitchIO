@@ -87,7 +87,7 @@ __all__ = (
     "ChatterColor",
     "Raid",
     "ChatBadge",
-    "ChatBadgeVersions",
+    "ChatBadgeVersion",
     "ContentClassificationLabel",
 )
 
