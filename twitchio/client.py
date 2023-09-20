@@ -675,7 +675,7 @@ class Client:
 
         return data
 
-    async def fetch_chatters_colors(self, user_ids: list[int], target: BaseUser | None = None) -> list[ChatterColor]:
+    async def fetch_chatter_colors(self, user_ids: list[int], target: BaseUser | None = None) -> list[ChatterColor]:
         """|coro|
 
         Fetches the color of a chatter.
@@ -686,6 +686,9 @@ class Client:
             List of user ids to fetch the colors for.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
+        
+        .. versionchanged:: 3.0
+            Removed the ``token`` parameter. Added the ``target`` parameter.
 
         Returns
         --------

@@ -233,6 +233,7 @@ Edits
 
 - :meth:`Client.fetch_chatter_colors`
     - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
 
 - :meth:`Client.update_chatter_color`
     - Removed the ``token`` parameter.
