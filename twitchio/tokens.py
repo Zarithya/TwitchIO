@@ -144,7 +144,7 @@ class Token(BaseToken):
 
         .. describe:: hash(x)
 
-            Returns the hash of the access token
+            Returns the hash of the access token.
 
     .. versionadded:: 3.0
 
@@ -152,7 +152,7 @@ class Token(BaseToken):
     -----------
     access_token: :class:`str`
         The token itself. This should **not** be prefixed with ``oauth:``!
-    refresh_token: Optional[:class:`str`]
+    refresh_token: :class:`str` | ``None``
         The reresh token associated with the access token. This is not useful unless you have passed ``client_secret`` to your :class:`~twitchio.Client`/:class:`~twitchio.ext.commands.Bot`
 
     """
