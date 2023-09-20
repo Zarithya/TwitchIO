@@ -170,7 +170,8 @@ class Client:
 
         async def _runner():
             try:
-                await self.start()
+                async with self:
+                    await self.start()
             except KeyboardInterrupt:
                 await self.close()
 
