@@ -1443,7 +1443,7 @@ class ChannelCustomReward:
 
     def __init__(self, transport: BaseTransport, payload: ChannelCustomRewardModifyPayload) -> None:
         self.id: str = payload["id"]
-        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_", payload)
+        self.broadcaster: PartialUser = _transform_user(transport, "broadcaster_user_", payload)
         self.enabled: bool = payload["is_enabled"]
         self.paused: bool = payload["is_paused"]
         self.in_stock: bool = payload["is_in_stock"]
