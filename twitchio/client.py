@@ -144,15 +144,15 @@ class Client:
         Adds an event listener to the Client.
         The event name must not have whitespace, and must not start with ``event_``.
 
+        .. versionchanged:: 3.0
+            This is now publicly documented.
+        
         Parameters
         -----------
         event_name: :class:`str`
             The event to dispatch this listener for.
         callback: Coroutine
             An async function that takes one argument. It will be called whenever the event is dispatched.
-        
-        .. versionchanged:: 3.0
-            This is now publicly documented.
         
         Returns
         --------
@@ -182,13 +182,14 @@ class Client:
         Removes an event listener from the Client.
         You must pass an ``Event`` or a function that has been marked as an event (usually with the :meth:`@client.listener <Client.listener>` decorator.)
 
+        .. versionchanged:: 3.0
+            This is now publicly documented.
+        
         Parameters
         -----------
         listener: ``Event`` | ``Coroutine``
             The listener to remove, or its corresponding ``Event`` container.
         
-        .. versionchanged:: 3.0
-            This is now publicly documented.
         """
         if not isinstance(listener, Event):
             try:
@@ -220,7 +221,7 @@ class Client:
         """
         A decorator for adding event listeners to the Client. This can be used in two different ways.
 
-        A)
+        1)
         
         .. code-block:: python
 
@@ -228,7 +229,7 @@ class Client:
             async def event_message(message: twitchio.Message) -> None:
                 ...
         
-        Or, B)
+        Or, 2)
 
         .. code-block:: python
 
@@ -438,6 +439,9 @@ class Client:
 
         Fetches users from twitch. You can provide any combination of up to 100 names and ids, but you must pass at least 1.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
+        
         Parameters
         -----------
         names: Optional[list[:class:`str`]]
@@ -446,9 +450,6 @@ class Client:
             A list of IDs.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
         
         Returns
         --------
@@ -468,6 +469,9 @@ class Client:
         Fetches a user from twitch. This is the same as :meth:`~Client.fetch_users`, but only returns one :class:`~twitchio.User`, instead of a list.
         You may only provide either name or id, not both.
 
+        .. versionchanged:: 3.0
+            Now returns ``User | None`` instead of raising IndexError when the user isn't found.
+        
         Parameters
         -----------
         name: Optional[:class:`str`]
@@ -476,9 +480,6 @@ class Client:
             A user ID.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns ``User | None`` instead of raising IndexError when the user isn't found.
         
         Returns
         --------
@@ -523,15 +524,15 @@ class Client:
 
         Searches channels for the given query.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
+        
         Parameters
         -----------
         query: :class:`str`
             The query to search for.
         live_only: :class:`bool`
             Only search live channels. Defaults to ``False``.
-        
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
 
         Returns
         --------
@@ -550,15 +551,15 @@ class Client:
 
         Searches Twitch categories.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
+        
         Parameters
         -----------
         query: :class:`str`
             The query to search for.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
         
         Returns
         --------
@@ -602,6 +603,9 @@ class Client:
         Fetches clips by clip id or game id.
         To fetch clips by user id, use :meth:`twitchio.PartialUser.fetch_clips`.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
+        
         Parameters
         -----------
         ids: list[:class:`str`]
@@ -610,9 +614,6 @@ class Client:
             A game id.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
         
         Returns
         --------
@@ -639,6 +640,9 @@ class Client:
         Fetches videos by id or game id.
         To fetch videos by user id, use :meth:`twitchio.PartialUser.fetch_videos`.
 
+        .. versionchanged:: 3.0
+            Parameters now use ``Literal`` instead of ``str | None`` where applicable. Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`.
+
         Parameters
         -----------
         ids: Optional[list[:class:`int`]]
@@ -659,9 +663,6 @@ class Client:
             Cannot be used when video id(s) are passed.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Parameters now use ``Literal`` instead of ``str | None`` where applicable.
         
         Returns
         --------
@@ -680,15 +681,15 @@ class Client:
 
         Fetches the color of a chatter.
 
+        .. versionchanged:: 3.0
+            Removed the ``token`` parameter. Added the ``target`` parameter.
+        
         Parameters
         -----------
         user_ids: list[:class:`int`]
             List of user ids to fetch the colors for.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
-        .. versionchanged:: 3.0
-            Removed the ``token`` parameter. Added the ``target`` parameter.
 
         Returns
         --------
@@ -704,6 +705,9 @@ class Client:
 
         Requires an OAuth token with the ``user:manage:chat_color`` scope.
 
+        .. versionchanged:: 3.0
+            Removed ``token`` & ``user_id`` parameters. Added literals to color parameter.
+        
         Parameters
         -----------
         target: :class:`~twitchio.BaseUser`
@@ -732,9 +736,6 @@ class Client:
         -------
             :err:`~twitchio.BadRequest`
                 The color parameter was either not valid, or you provided a hex value without being a prime or turbo member.
-        
-        .. versionchanged:: 3.0
-            Removed ``token`` & ``user_id`` parameters. Added literals to color parameter.
         """
 
         # "mom can we have urlencoding"
@@ -755,6 +756,9 @@ class Client:
         Fetches games by id, name or IGDB id.
         At least one id or name must be provided.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
+        
         Parameters
         -----------
         ids: list[:class:`int`] | ``None``
@@ -765,9 +769,6 @@ class Client:
             An optional list of IGDB ids.
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
         
         Returns
         --------
@@ -794,6 +795,9 @@ class Client:
 
         Fetches live streams from the helix API.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`.
+        
         Parameters
         -----------
         user_ids: Optional[list[:class:`int`]]
@@ -808,9 +812,6 @@ class Client:
             The type of stream to fetch. Defaults to "all".
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
         
         Returns
         --------
@@ -834,13 +835,13 @@ class Client:
 
         Fetches the top streamed games from the api.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
+        
         Parameters
         ----------
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
         
         Returns
         --------
@@ -856,6 +857,9 @@ class Client:
 
         Fetches stream tags.
 
+        .. versionchanged:: 3.0
+            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
+        
         Parameters
         -----------
         ids: list[:class:`str`] | ``None``
@@ -863,9 +867,6 @@ class Client:
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
 
-        .. versionchanged:: 3.0
-            Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
-        
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Tag`]
@@ -883,6 +884,9 @@ class Client:
 
         Fetches information for a specific Twitch Team. You must provide one of ``name`` or ``id``.
 
+        .. versionchanged:: 3.0
+            Added the ``target`` parameter.
+        
         Parameters
         -----------
         name: :class:`str` | ``None``
@@ -892,9 +896,6 @@ class Client:
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
 
-        .. versionchanged:: 3.0
-            Added the ``target`` parameter.
-        
         Returns
         --------
             :class:`twitchio.Team`
@@ -914,6 +915,9 @@ class Client:
 
         Requires an OAuth token with the ``channel:manage:videos`` scope.
 
+        .. versionchanged:: 3.0
+            Removed the ``token`` parameter. Added the ``target` parameter.
+        
         Parameters
         -----------
         target: :class:`~twitchio.BaseUser`
@@ -921,9 +925,6 @@ class Client:
         ids: list[:class:`int`]
             A list of video ids from the channel of the oauth token to delete.
 
-        .. versionchanged:: 3.0
-            Removed the ``token`` parameter. Added the ``target` parameter.
-        
         Returns
         --------
             list[:class:`int`]
