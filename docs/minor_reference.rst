@@ -77,9 +77,9 @@ This generally includes models that are returned by API requests.
     :members:
     :inherited-members:
 
-.. attributetable:: ChatBadgeVersions
+.. attributetable:: ChatBadgeVersion
 
-.. autoclass:: ChatBadgeVersions
+.. autoclass:: ChatBadgeVersion
     :members:
     :inherited-members:
 
