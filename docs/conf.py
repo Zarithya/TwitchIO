@@ -108,7 +108,7 @@ rst_prolog = """
 .. |deco| replace:: This function is a **decorator**.
 .. |aai| replace:: This function returns an |aaiurl|_.
 .. |aaiurl| replace:: **awaitable async iterator**
-.. _aaiurl: :ref:`aai`
+.. _aaiurl: ./awaitableasynciterator.html
 """
 
 # The suffix(es) of source filenames.
