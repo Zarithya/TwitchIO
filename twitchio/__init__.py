@@ -35,3 +35,4 @@ from .models import *
 from .rewards import *
 from .tokens import *
 from .events import *
+from .http import HTTPAwaitableAsyncIterator, HTTPAwaitableAsyncIteratorWithSource

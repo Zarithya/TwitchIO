@@ -136,6 +136,7 @@ class PartialUser:
         Requires an OAuth token with the ``channel:read:redemptions`` or ``channel:manage:redemptions`` scope.
 
         .. versionchanged:: 3.0
+            Description of what has changed.
 
         Parameters
         ----------

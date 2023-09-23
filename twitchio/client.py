@@ -80,23 +80,21 @@ class Client:
     Parameters
     ----------
     token_handler: :class:`~twitchio.BaseTokenHandler`
-        Your token handler instance. See ... # TODO doc link to explaining token handlers
-    heartbeat: Optional[:class:`float`]
+        Your token handler instance. See :ref:`token handling <tokens>`
+    heartbeat: :class:`float` | ``None``
         An optional heartbeat to provide to keep connections over proxies and such alive.
         Defaults to 30.0.
-    verified: Optional[:class:`bool`]
+    verified: :class:`bool` | ``None``
         Whether or not your bot is verified or not. Defaults to False.
-    join_timeout: Optional[:class:`float`]
+    join_timeout: :class:`float` | ``None``
         An optional float to use to timeout channel joins. Defaults to 15.0.
-    initial_channels: Optional[Union[list[:class:`str`], tuple[:class:`str`], :class:`callable`, :class:`coroutine`]]
+    initial_channels: list[:class:`str`] | tuple[:class:`str`] | :class:`callable` | :class:`coroutine` | ``None``
         An optional list or tuple of channels to join on bot start. This may be a callable or coroutine,
         but must return a :class:`list` or :class:`tuple`.
     shard_limit: :class:`int`
         The amount of channels per websocket. Defaults to 100 channels per socket.
-    cache_size: Optional[:class:`int`]
+    cache_size: :class:`int` | ``None``
         The size of the internal channel cache. Defaults to unlimited.
-    eventsub: Optional[:class:`~twitchio.ext.EventSubClient`]
-        The EventSubClient instance to use with the client to dispatch subscribed webhook events.
     """
 
     def __init__(
