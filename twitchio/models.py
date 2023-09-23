@@ -483,6 +483,20 @@ class PartialUser(BaseUser):
         iterator.set_adapter(lambda handler, data: ChannelFollowingEvent(handler, data))
         return iterator
 
+    async def fetch_channel_following_count(self, target: BaseUser) -> int:
+        """|coro|
+
+        Fetches total number of channels that this user is following.
+
+        .. versionchanged:: 3.0
+
+        Returns
+        --------
+            :class:`int`
+        """
+        data = await self._http.get_channel_followed_count(user_id=(str(self.id)), target=target)
+        return data["total"] or 0
+
     def fetch_channel_followers(
         self, target: BaseUser, user_id: int | None = None
     ) -> HTTPAwaitableAsyncIterator[ChannelFollowerEvent]:
@@ -500,6 +514,21 @@ class PartialUser(BaseUser):
         iterator = self._http.get_channel_followers(broadcaster_id=str(self.id), user_id=user_id, target=target)
         iterator.set_adapter(lambda handler, data: ChannelFollowerEvent(handler, data))
         return iterator
+
+    async def fetch_channel_followers_count(self) -> int:
+        """|coro|
+
+        Fetches total number of channels that follows this user.
+        Requires an OAuth token with the ``user:read:follows`` scope.
+
+        .. versionchanged:: 3.0
+
+        Returns
+        --------
+            :class:`int`
+        """
+        data = await self._http.get_channel_followers_count(broadcaster_id=(str(self.id)))
+        return data["total"] or 0
 
     def fetch_subscribers(
         self, target: BaseUser, userids: list[int] | None = None
@@ -2605,7 +2634,7 @@ class ChannelTeams:
 
 class ChannelFollowerEvent:
     """
-    Represents a ChannelFollowEvent Event.
+    Represents a ChannelFollowerEvent Event.
 
     Attributes
     -----------
@@ -2631,7 +2660,7 @@ class ChannelFollowerEvent:
 
 class ChannelFollowingEvent:
     """
-    Represents a ChannelFollowEvent Event.
+    Represents a ChannelFollowingEvent Event.
 
     Attributes
     -----------

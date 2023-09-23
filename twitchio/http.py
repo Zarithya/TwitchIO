@@ -1020,6 +1020,12 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             )
         )
 
+    def get_channel_followed_count(self, user_id: str, target: BaseUser) -> Any:
+        return self.request(Route("GET", "channels/followed", None, parameters=[("user_id", user_id)], target=target))
+
+    def get_channel_followers_count(self, broadcaster_id: str) -> Any:
+        return self.request(Route("GET", "channels/followers", None, parameters=[("broadcaster_id", broadcaster_id)]))
+
     def put_update_user(self, target: BaseUser, description: str) -> Any:
         return self.request(Route("PUT", "users", None, parameters=[("description", description)], target=target))
 
