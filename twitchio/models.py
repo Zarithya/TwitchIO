@@ -475,6 +475,13 @@ class PartialUser(BaseUser):
 
         .. versionchanged:: 3.0
 
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
+        broadcaster_id: :class:`int` | ``None``
+            Optional broadcaster / user ID to check whether the user follows this specified broadcaster.
+
         Returns
         --------
             :class:`~twitchio.AwaitableAsyncIterator`[:class:`ChannelFollowingEvent`]
@@ -489,6 +496,11 @@ class PartialUser(BaseUser):
         Fetches total number of channels that this user is following.
 
         .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
 
         Returns
         --------
@@ -506,6 +518,13 @@ class PartialUser(BaseUser):
         Requires an OAuth token with the ``moderator:read:followers`` scope.
 
         .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
+        user_id: :class:`int` | ``None``
+            Optional user ID to check whether this specific user is following the broadcaster.
 
         Returns
         --------
