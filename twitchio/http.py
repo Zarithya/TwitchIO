@@ -322,10 +322,10 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
                         await bucket.release()
                         raise Unauthorized(response, data)  # type: ignore
-                    
+
                     elif response.status == 400:
                         logger.debug("Received Bad Request response from %s", route.url.path)
-                        raise BadRequest(response, data) # type: ignore
+                        raise BadRequest(response, data)  # type: ignore
 
                     else:
                         logger.debug(
@@ -984,16 +984,38 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
         return self.request_paginated_route(Route("GET", "users", None, parameters=params, target=target))
 
-    def get_user_follows(  # FIXME: this is deprecated
-        self, from_id: str | None = None, to_id: str | None = None, target: BaseUser | None = None
+    def get_channel_followers(
+        self, broadcaster_id: str, target: BaseUser, user_id: int | None = None
     ) -> HTTPAwaitableAsyncIterator:
+        params: ParameterType = [("broadcaster_id", broadcaster_id)]
+        if user_id is not None:
+            params.append(("user_id", str(user_id)))
+
         return self.request_paginated_route(
             Route(
                 "GET",
-                "users/follows",
+                "channels/followers",
                 None,
                 scope=("moderator:read:followers",),
-                parameters=[x for x in [("from_id", from_id), ("to_id", to_id)] if x[1] is not None],
+                parameters=params,
+                target=target,
+            )
+        )
+
+    def get_channel_followed(
+        self, user_id: str, target: BaseUser, broadcaster_id: int | None = None
+    ) -> HTTPAwaitableAsyncIterator:
+        params: ParameterType = [("user_id", user_id)]
+        if broadcaster_id is not None:
+            params.append(("broadcaster_id", str(broadcaster_id)))
+
+        return self.request_paginated_route(
+            Route(
+                "GET",
+                "channels/followed",
+                None,
+                scope=("user:read:follows",),
+                parameters=params,
                 target=target,
             )
         )
