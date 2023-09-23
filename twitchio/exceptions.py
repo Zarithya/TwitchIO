@@ -86,8 +86,10 @@ class HTTPResponseException(HTTPException):
 
         super().__init__(f"{self.status}: {self.message}")
 
+
 class BadRequest(HTTPResponseException):
     pass
+
 
 class Unauthorized(HTTPResponseException):
     pass

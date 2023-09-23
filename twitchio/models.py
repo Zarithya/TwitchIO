@@ -35,7 +35,6 @@ from .utils import parse_timestamp
 
 if TYPE_CHECKING:
     from .http import HTTPHandler
-    from .models import BitsLeaderboard, Clip, ExtensionBuilder, FollowEvent, Prediction, Tag
     from .types.extensions import Extension as ExtensionType, ExtensionBuilder as ExtensionBuilderType
 
 
@@ -53,7 +52,6 @@ __all__ = (
     "HypeTrainContribution",
     "HypeTrainEvent",
     "BanEvent",
-    "FollowEvent",
     "SubscriptionEvent",
     "SubscribedEvent",
     "Marker",
@@ -89,6 +87,8 @@ __all__ = (
     "ChatBadge",
     "ChatBadgeVersion",
     "ContentClassificationLabel",
+    "ChannelFollowerEvent",
+    "ChannelFollowingEvent",
 )
 
 
@@ -300,7 +300,12 @@ class PartialUser(BaseUser):
         data = await self._http.post_create_clip(self, self.id, has_delay)
         return data["data"][0]
 
-    def fetch_clips(self, started_at: datetime.datetime | None = None, ended_at: datetime.datetime | None = None, is_featured: bool | None = None) -> HTTPAwaitableAsyncIterator[Clip]:
+    def fetch_clips(
+        self,
+        started_at: datetime.datetime | None = None,
+        ended_at: datetime.datetime | None = None,
+        is_featured: bool | None = None,
+    ) -> HTTPAwaitableAsyncIterator[Clip]:
         """|aai|
 
         Fetches clips from the api. This will only return clips created by this user.
@@ -313,7 +318,9 @@ class PartialUser(BaseUser):
             :class:`~twitchio.AwaitableAsyncIterator`[:class:`~twitchio.Clip`]
         """
 
-        iterator: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(self.id, started_at=started_at, ended_at=ended_at, is_featured=is_featured)
+        iterator: HTTPAwaitableAsyncIterator[Clip] = self._http.get_clips(
+            self.id, started_at=started_at, ended_at=ended_at, is_featured=is_featured
+        )
         iterator.set_adapter(lambda handler, data: Clip(handler, data))
 
         return iterator
@@ -458,7 +465,9 @@ class PartialUser(BaseUser):
         data = await self._http.get_stream_key(self, str(self.id))
         return data["data"][0]["stream_key"]
 
-    def fetch_following(self) -> HTTPAwaitableAsyncIterator[FollowEvent]:
+    def fetch_channel_following(
+        self, target: BaseUser, broadcaster_id: int | None = None
+    ) -> HTTPAwaitableAsyncIterator[ChannelFollowingEvent]:
         """|aai|
 
         Fetches a list of users that this user is `following`.
@@ -466,17 +475,43 @@ class PartialUser(BaseUser):
 
         .. versionchanged:: 3.0
 
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
+        broadcaster_id: :class:`int` | ``None``
+            Optional broadcaster / user ID to check whether the user follows this specified broadcaster.
+
         Returns
         --------
-            :class:`~twitchio.AwaitableAsyncIterator`[:class:`FollowEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`ChannelFollowingEvent`]
         """
-        iterator = self._http.get_user_follows(
-            target=self, from_id=str(self.id)
-        )  # FIXME: this route is deprecated, use channels/followed
-        iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
+        iterator = self._http.get_channel_followed(target=target, user_id=str(self.id), broadcaster_id=broadcaster_id)
+        iterator.set_adapter(lambda handler, data: ChannelFollowingEvent(handler, data))
         return iterator
 
-    def fetch_followers(self) -> HTTPAwaitableAsyncIterator[FollowEvent]:
+    async def fetch_channel_following_count(self, target: BaseUser) -> int:
+        """|coro|
+
+        Fetches total number of channels that this user is following.
+
+        .. versionchanged:: 3.0
+
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
+
+        Returns
+        --------
+            :class:`int`
+        """
+        data = await self._http.get_channel_followed_count(user_id=(str(self.id)), target=target)
+        return data["total"] or 0
+
+    def fetch_channel_followers(
+        self, target: BaseUser, user_id: int | None = None
+    ) -> HTTPAwaitableAsyncIterator[ChannelFollowerEvent]:
         """|aai|
 
         Fetches a list of users that are `following` this user.
@@ -484,15 +519,39 @@ class PartialUser(BaseUser):
 
         .. versionchanged:: 3.0
 
+        Parameters
+        -----------
+        target: :class:`BaseUser`
+            The BaseUser with the user ID of which token you are using with appropriate scopes.
+        user_id: :class:`int` | ``None``
+            Optional user ID to check whether this specific user is following the broadcaster.
+
         Returns
         --------
-            :class:`~twitchio.AwaitableAsyncIterator`[:class:`FollowEvent`]
+            :class:`~twitchio.AwaitableAsyncIterator`[:class:`ChannelFollowerEvent`]
         """
-        iterator = self._http.get_user_follows(to_id=str(self.id))  # FIXME: this is deprecated, use channels/followers
-        iterator.set_adapter(lambda handler, data: FollowEvent(handler, data, self))
+        iterator = self._http.get_channel_followers(broadcaster_id=str(self.id), user_id=user_id, target=target)
+        iterator.set_adapter(lambda handler, data: ChannelFollowerEvent(handler, data))
         return iterator
 
-    def fetch_subscribers(self, userids: list[int] | None = None) -> HTTPAwaitableAsyncIterator[SubscriptionEvent]:
+    async def fetch_channel_followers_count(self) -> int:
+        """|coro|
+
+        Fetches total number of channels that follows this user.
+        Requires an OAuth token with the ``user:read:follows`` scope.
+
+        .. versionchanged:: 3.0
+
+        Returns
+        --------
+            :class:`int`
+        """
+        data = await self._http.get_channel_followers_count(broadcaster_id=(str(self.id)))
+        return data["total"] or 0
+
+    def fetch_subscribers(
+        self, target: BaseUser, userids: list[int] | None = None
+    ) -> HTTPAwaitableAsyncIterator[SubscriptionEvent]:
         """|aai|
 
         Fetches the subscriptions for this channel.
@@ -2590,6 +2649,58 @@ class ChannelTeams:
 
     def __repr__(self) -> str:
         return f"<ChannelTeams user={self.broadcaster} team_name={self.team_name} team_display_name={self.team_display_name} id={self.id} created_at={self.created_at}>"
+
+
+class ChannelFollowerEvent:
+    """
+    Represents a ChannelFollowerEvent Event.
+
+    Attributes
+    -----------
+    user: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+        The user that followed another user.
+    followed_at: :class:`datetime.datetime`
+        When the follow happened.
+    """
+
+    __slots__ = "user", "followed_at"
+
+    def __init__(
+        self,
+        http: HTTPHandler,
+        data: dict,
+    ):
+        self.user: PartialUser = PartialUser(http, data["user_id"], data["user_login"])
+        self.followed_at: datetime.datetime = parse_timestamp(data["followed_at"])
+
+    def __repr__(self):
+        return f"<ChannelFollowerEvent user={self.user} followed_at={self.followed_at}>"
+
+
+class ChannelFollowingEvent:
+    """
+    Represents a ChannelFollowingEvent Event.
+
+    Attributes
+    -----------
+    broadcaster: Union[:class:`~twitchio.User`, :class:`~twitchio.PartialUser`]
+        The user that is following another user.
+    followed_at: :class:`datetime.datetime`
+        When the follow happened.
+    """
+
+    __slots__ = "broadcaster", "followed_at"
+
+    def __init__(
+        self,
+        http: HTTPHandler,
+        data: dict,
+    ):
+        self.broadcaster: PartialUser = PartialUser(http, data["broadcaster_id"], data["broadcaster_login"])
+        self.followed_at: datetime.datetime = parse_timestamp(data["followed_at"])
+
+    def __repr__(self):
+        return f"<ChannelFollowingEvent user={self.broadcaster} followed_at={self.followed_at}>"
 
 
 class Poll:

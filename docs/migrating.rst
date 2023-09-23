@@ -30,6 +30,8 @@ The following functions have been removed due to their corresponding API routes 
 - :meth:`PartialUser.unfollow`
 - :meth:`PartialUser.replace_tags`
 - :meth:`PartialUser.fetch_follow`
+- :meth:`PartialUser.fetch_following`
+- :meth:`PartialUser.fetch_followed`
 
 
 Edits 
@@ -87,14 +89,6 @@ The following functions have had edits made to them:
 - :meth:`PartialUser.fetch_stream_key`
     - Removed the ``token`` parameter.
     - This function now returns the documented string instead of a raw response.
-
-- :meth:`PartialUser.fetch_following`
-    - Removed the ``token`` parameter.
-    - This function now returns an :ref:`aai`.
-
-- :meth:`PartialUser.fetch_followers`
-    - Removed the ``token`` parameter.
-    - This function now returns an :ref:`aai`.
 
 - :meth:`PartialUser.fetch_subscriptions` -> :meth:`PartialUser.fetch_subscribers`
     - Renamed to avoid intent conflict with :meth:`PartialUser.fetch_subscribed`.
@@ -177,6 +171,20 @@ The following functions have had edits made to them:
 - :meth:`PartialUser.update_chat_settings`
     - Removed the ``token`` parameter.
     - Changed the ``moderator_id`` parameter to ``moderator`` of type :class:`BaseUser`
+
+- :meth:`PartialUser.fetch_channel_following`
+    - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
+    - This function now returns an :ref:`aai`.
+
+- :meth:`PartialUser.fetch_channel_followed`
+    - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
+    - This function now returns an :ref:`aai`.
+
+- :meth:`PartialUser.fetch_channel_followed_count`
+    - Removed the ``token`` parameter.
+    - Added the ``target`` parameter.
 
 
 Client Changes

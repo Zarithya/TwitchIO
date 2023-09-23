@@ -50,24 +50,27 @@ __all__ = ("Client",)
 
 logger = logging.getLogger("twitchio.client")
 
+
 class Event:
     __slots__ = ("_callback", "event", "cb_uuid")
 
-    def __init__(self, callback: Callable[[Any], Coroutine[Any, Any, None]], event: str, callback_uuid: uuid.UUID) -> None:
+    def __init__(
+        self, callback: Callable[[Any], Coroutine[Any, Any, None]], event: str, callback_uuid: uuid.UUID
+    ) -> None:
         self._callback = callback
-        
+
         self.event = event
         self.cb_uuid = callback_uuid
-    
+
     def __call__(self, arg: Any) -> Coroutine[Any, Any, None]:
         return self._callback(arg)
-    
+
     def __hash__(self) -> int:
         return hash(self.cb_uuid.int)
-    
+
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Event) and other.cb_uuid == self.cb_uuid
-    
+
 
 class Client:
     """THe main Twitch HTTP and IRC Client.
@@ -138,7 +141,7 @@ class Client:
         self._has_acquired = False
         if not self._is_closed:
             await self.close()
-    
+
     def add_event_listener(self, event_name: str, callback: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
         """
         Adds an event listener to the Client.
@@ -146,14 +149,14 @@ class Client:
 
         .. versionchanged:: 3.0
             This is now publicly documented.
-        
+
         Parameters
         -----------
         event_name: :class:`str`
             The event to dispatch this listener for.
         callback: Coroutine
             An async function that takes one argument. It will be called whenever the event is dispatched.
-        
+
         Returns
         --------
             ``Event``
@@ -161,18 +164,21 @@ class Client:
         """
         if " " in event_name or event_name.startswith("event_"):
             raise ValueError("Invalid event name: contains whitespace or starts with 'event_'")
-        
+
         if event_name not in self._events:
             self._events[event_name] = set()
-        
+
         cb_uuid = uuid.uuid4()
         container = Event(callback, event_name, cb_uuid)
-        
+
         try:
             callback._event = container
         except:
-            logger.debug("Could not add reference to event back to callback for function %s. This may make removing it difficult.", repr(callback))
-        
+            logger.debug(
+                "Could not add reference to event back to callback for function %s. This may make removing it difficult.",
+                repr(callback),
+            )
+
         self._events[event_name].add(container)
 
         return container
@@ -184,12 +190,12 @@ class Client:
 
         .. versionchanged:: 3.0
             This is now publicly documented.
-        
+
         Parameters
         -----------
         listener: ``Event`` | ``Coroutine``
             The listener to remove, or its corresponding ``Event`` container.
-        
+
         """
         if not isinstance(listener, Event):
             try:
@@ -199,36 +205,38 @@ class Client:
 
         else:
             event_ = listener
-        
+
         name = event_.event
         if name not in self._events:
             raise ValueError("The event is registered to a nonexistant event name.")
-        
+
         try:
             self._events[name].remove(event_)
         except KeyError as e:
             raise ValueError("The event is not registered.") from e
-    
+
     @overload
     def listener(self, name_or_function: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
         ...
-    
+
     @overload
     def listener(self, name_or_function: str) -> Callable[[Callable[[Any], Coroutine[Any, Any, None]]], Event]:
         ...
-    
-    def listener(self, name_or_function: str | Callable[[Any], Coroutine[Any, Any, None]]) -> Callable[[Callable[[Any], Coroutine[Any, Any, None]]], Event] | Event:
+
+    def listener(
+        self, name_or_function: str | Callable[[Any], Coroutine[Any, Any, None]]
+    ) -> Callable[[Callable[[Any], Coroutine[Any, Any, None]]], Event] | Event:
         """
         A decorator for adding event listeners to the Client. This can be used in two different ways.
 
         1)
-        
+
         .. code-block:: python
 
             @client.listener
             async def event_message(message: twitchio.Message) -> None:
                 ...
-        
+
         Or, 2)
 
         .. code-block:: python
@@ -236,10 +244,10 @@ class Client:
             @client.listener("message") # or "event_message"
             async def this_is_a_message_listener(message: twitchio.Message) -> None:
                 ...
-        
+
         .. versionchanged:: 3.0
             This can now be used without the name in the decorator.
-        
+
         Returns
         --------
             ``Event``
@@ -251,6 +259,7 @@ class Client:
             return event
 
         else:
+
             def wraps(fn: Callable[[Any], Coroutine[Any, Any, None]]) -> Event:
                 event = self.add_event_listener(name_or_function.removeprefix("event_"), fn)
                 return event
@@ -424,7 +433,7 @@ class Client:
             The numeric ID of the user.
         user_name: :class:`str`
             The name of the user.
-        
+
         Returns
         --------
             :class:`~twitchio.PartialUser`
@@ -441,7 +450,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
-        
+
         Parameters
         -----------
         names: Optional[list[:class:`str`]]
@@ -450,7 +459,7 @@ class Client:
             A list of IDs.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.User`]
@@ -463,7 +472,9 @@ class Client:
 
         return data
 
-    async def fetch_user(self, name: str | None = None, id: int | None = None, target: BaseUser | None = None) -> User | None:
+    async def fetch_user(
+        self, name: str | None = None, id: int | None = None, target: BaseUser | None = None
+    ) -> User | None:
         """|coro|
 
         Fetches a user from twitch. This is the same as :meth:`~Client.fetch_users`, but only returns one :class:`~twitchio.User`, instead of a list.
@@ -471,7 +482,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns ``User | None`` instead of raising IndexError when the user isn't found.
-        
+
         Parameters
         -----------
         name: Optional[:class:`str`]
@@ -480,7 +491,7 @@ class Client:
             A user ID.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.User`
@@ -519,14 +530,16 @@ class Client:
         data = await self._http.get_cheermotes(str(user_id) if user_id else None, target=target)
         return [CheerEmote(self._http, x) for x in data["data"]]
 
-    def search_channels(self, query: str, *, live_only=False, target: BaseUser | None = None) -> HTTPAwaitableAsyncIterator[SearchUser]:
+    def search_channels(
+        self, query: str, *, live_only=False, target: BaseUser | None = None
+    ) -> HTTPAwaitableAsyncIterator[SearchUser]:
         """|coro|
 
         Searches channels for the given query.
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
-        
+
         Parameters
         -----------
         query: :class:`str`
@@ -553,14 +566,14 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
-        
+
         Parameters
         -----------
         query: :class:`str`
             The query to search for.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Game`]
@@ -597,7 +610,9 @@ class Client:
         except HTTPException as e:
             raise HTTPException("Incorrect channel ID provided") from e
 
-    def fetch_clips(self, ids: list[str], game_id: str | None = None, target: BaseUser | None = None) -> HTTPAwaitableAsyncIterator[Clip]:
+    def fetch_clips(
+        self, ids: list[str], game_id: str | None = None, target: BaseUser | None = None
+    ) -> HTTPAwaitableAsyncIterator[Clip]:
         """|aai|
 
         Fetches clips by clip id or game id.
@@ -605,7 +620,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
-        
+
         Parameters
         -----------
         ids: list[:class:`str`]
@@ -614,7 +629,7 @@ class Client:
             A game id.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Clip`]
@@ -663,7 +678,7 @@ class Client:
             Cannot be used when video id(s) are passed.
         target: Optional[:class:`~twitchio.BaseUser`]
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Video`]
@@ -683,7 +698,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Removed the ``token`` parameter. Added the ``target`` parameter.
-        
+
         Parameters
         -----------
         user_ids: list[:class:`int`]
@@ -697,8 +712,29 @@ class Client:
         """
         data = await self._http.get_user_chat_color(user_ids, target)
         return [ChatterColor(self._http, x) for x in data["data"]]
-    
-    async def update_chatter_color(self, target: BaseUser, color: Literal["blue", "blue_violet", "cadet_blue", "chocolate", "coral", "dodger_blue", "firebrick", "golden_rod", "green", "hot_pink", "orange_red", "red", "sea_green", "spring_green", "yellow_green"] | str) -> None:
+
+    async def update_chatter_color(
+        self,
+        target: BaseUser,
+        color: Literal[
+            "blue",
+            "blue_violet",
+            "cadet_blue",
+            "chocolate",
+            "coral",
+            "dodger_blue",
+            "firebrick",
+            "golden_rod",
+            "green",
+            "hot_pink",
+            "orange_red",
+            "red",
+            "sea_green",
+            "spring_green",
+            "yellow_green",
+        ]
+        | str,
+    ) -> None:
         """|coro|
 
         Updates the color of the specified user in the specified channel/broadcaster's chat.
@@ -707,7 +743,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Removed ``token`` & ``user_id`` parameters. Added literals to color parameter.
-        
+
         Parameters
         -----------
         target: :class:`~twitchio.BaseUser`
@@ -731,7 +767,7 @@ class Client:
             - yellow_green
 
             Turbo and Prime users may specify a named color or a Hex color code like ``#9146FF``.
-        
+
         Raises
         -------
             :err:`~twitchio.BadRequest`
@@ -758,7 +794,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`
-        
+
         Parameters
         -----------
         ids: list[:class:`int`] | ``None``
@@ -769,7 +805,7 @@ class Client:
             An optional list of IGDB ids.
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Game`]
@@ -797,7 +833,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`.
-        
+
         Parameters
         -----------
         user_ids: Optional[list[:class:`int`]]
@@ -812,7 +848,7 @@ class Client:
             The type of stream to fetch. Defaults to "all".
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Stream`]
@@ -837,12 +873,12 @@ class Client:
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
-        
+
         Parameters
         ----------
         target: :class:`~twitchio.BaseUser` | ``None``
             The target of this HTTP call. Passing a user will tell the library to put this call under the authorized token for that user, if one exists in your token handler.
-        
+
         Returns
         --------
             :class:`~twitchio.HTTPAwaitableAsyncIterator`[:class:`~twitchio.Game`]
@@ -852,14 +888,16 @@ class Client:
 
         return data
 
-    def fetch_tags(self, ids: list[str] | None = None, target: BaseUser | None = None) -> HTTPAwaitableAsyncIterator[Tag]:
+    def fetch_tags(
+        self, ids: list[str] | None = None, target: BaseUser | None = None
+    ) -> HTTPAwaitableAsyncIterator[Tag]:
         """|aai|
 
         Fetches stream tags.
 
         .. versionchanged:: 3.0
             Now returns an :class:`AAI <twitchio.HTTPAwaitableAsyncIterator>`. Added the ``target`` parameter.
-        
+
         Parameters
         -----------
         ids: list[:class:`str`] | ``None``
@@ -886,7 +924,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Added the ``target`` parameter.
-        
+
         Parameters
         -----------
         name: :class:`str` | ``None``
@@ -917,7 +955,7 @@ class Client:
 
         .. versionchanged:: 3.0
             Removed the ``token`` parameter. Added the ``target` parameter.
-        
+
         Parameters
         -----------
         target: :class:`~twitchio.BaseUser`
