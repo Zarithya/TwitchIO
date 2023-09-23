@@ -20,18 +20,23 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-__title__ = "TwitchIO"
-__author__ = "TwitchIO, PythonistaGuild"
-__license__ = "MIT"
-__copyright__ = "Copyright 2017-present (c) TwitchIO"
-__version__ = "3.0.0a"
 
-from .channel import *
-from .chatter import *
-from .client import *
-from .exceptions import *
-from .message import *
-from .models import *
-from .rewards import *
-from .tokens import *
-from .events import *
+from dataclasses import dataclass
+
+
+__all__ = ("EventErrorData",)
+
+@dataclass
+class EventErrorData:
+    """
+    Data passed to event_error.
+
+    Attributes
+    -----------
+    event_name: :class:`str`
+        The name of the event that raised the error.
+    error: :class:`Exception`
+        The error that was raised.
+    """
+    event_name: str
+    error: Exception

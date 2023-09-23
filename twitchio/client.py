@@ -30,7 +30,7 @@ import traceback
 import uuid
 from collections.abc import Callable, Coroutine
 from typing import TYPE_CHECKING, Any, Literal, overload
-
+from . import events
 from twitchio.http import HTTPAwaitableAsyncIterator, HTTPHandler
 
 from .channel import Channel
@@ -265,6 +265,35 @@ class Client:
                 return event
 
             return wraps
+    
+    def dispatch_listeners(self, event_name: str, arg: Any) -> None:
+        """
+        Dispatches listeners for the specified event. The event name cannot have whitespace or start with ``event_``.
+
+        .. versionchanged:: 3.0
+            Events now only take 1 parameter.
+
+        Parameters
+        -----------
+        event_name: :class:`str`
+            The event to dispatch.
+        arg: Any
+            The argument to pass to the listeners.
+        """
+
+        listeners = self._events.get(event_name)
+
+        if not listeners:
+            return
+        
+        for listener in listeners:
+            asyncio.create_task(self._dispatch_task(listener, arg), name=f"dispatch-listener:{event_name}:{listener.cb_uuid}")
+        
+    async def _dispatch_task(self, callback: Event, arg: Any) -> None:
+        try:
+            await callback(arg)
+        except Exception as e:
+            self.dispatch_listeners("error", events.EventErrorData(callback.event, e))
 
     async def _shard(self):
         if inspect.iscoroutinefunction(self._initial_channels):

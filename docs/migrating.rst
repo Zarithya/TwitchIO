@@ -224,6 +224,11 @@ Edits
     - Renamed function for clarity.
     - The decorator can be used without the event name in it now (see the :meth:`example <Client.listener>`).
 
+- :meth:`Client.run_event` -> :meth:`Client.dispatch_listeners`
+    - Renamed function for clarity.
+    - This is now documented for public use.
+    - Removed \*args.
+
 - :meth:`Client.fetch_users`
     - This function now returns an :ref:`aai`.
     - This function no longer has a cache.
