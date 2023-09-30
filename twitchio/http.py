@@ -36,7 +36,7 @@ from yarl import URL
 from .exceptions import HTTPException, HTTPResponseException, RefreshFailure, Unauthorized, BadRequest
 from .limiter import HTTPRateLimiter, RateLimitBucket
 from .tokens import BaseToken, BaseTokenHandler, Token
-from .utils import MISSING, json_dumper, json_loader
+from .utils import MISSING, json_dumper, json_loader, maybe_coro
 
 if TYPE_CHECKING:
     from .client import Client
@@ -231,7 +231,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
 
     async def request(self, route: Route) -> Any:
         token: BaseToken = await self._get_token_from_route(route)
-        client_id, _ = await self.token_handler.get_client_credentials()
+        client_id, _ = await maybe_coro(self.token_handler.get_client_credentials)
         is_fresh_token = False
 
         raw_token = await token.get(self, self.token_handler, cast(aiohttp.ClientSession, self._session))
@@ -264,7 +264,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                     else:
                         data = _data
 
-                    if not (400 <= response.status <= 500):
+                    if not (400 <= response.status <= 500) or response.status == 429:
                         bucket.update(response)
 
                     if 200 <= response.status <= 299:
@@ -298,12 +298,23 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
                                     headers["Authorization"] = f"Bearer {raw_token}"
                                     continue
                                 except RefreshFailure:
-                                    self.token_handler._evict(token)
                                     logger.debug(
-                                        "Failed to refresh token for target %s on route %s; evicting from cache and trying to get fresh token",
+                                        "Failed to refresh token for target %s on route %s; evicting from cache and trying to get fresh token from expiry hook.",
                                         route.target,
                                         route.url.path,
                                     )
+                                    hooked_token = await self.token_handler._client_call_expiry_handler(token)
+
+                                    if hooked_token is not None:
+                                        token = hooked_token
+                                        is_fresh_token = True
+
+                                        raw_token = await hooked_token.get(self, self.token_handler, cast(aiohttp.ClientSession, self._session))
+                                        headers["Authorization"] = f"Bearer {raw_token}"
+                                        continue
+
+                                    
+                                    logger.debug("Expiry hook didn't return a token, falling back to fresh token hooks.")
 
                             else:
                                 logger.debug(
@@ -1365,7 +1376,7 @@ class HTTPHandler(Generic[TokenHandlerT, T]):
             ("moderator_id", moderator_id),
             ("to_broadcaster_id", to_broadcaster_id),
         ]
-        return self.request(Route("POST", "chat/shoutouts", None, parameters=params, target=target))
+        return await self.request(Route("POST", "chat/shoutouts", None, parameters=params, target=target))
 
     async def get_channel_chat_badges(self, broadcaster_id: str, target: BaseUser | None = None) -> Any:
         params: ParameterType = [("broadcaster_id", broadcaster_id)]

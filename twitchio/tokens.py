@@ -22,9 +22,10 @@ SOFTWARE.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from typing_extensions import Self
@@ -70,12 +71,13 @@ class BaseToken:
 
             Returns the hash of the access token
 
+    .. versionadded:: 3.0
+
     Attributes
     -----------
     access_token: :class:`str`
         The access token to use.
 
-    .. versionadded:: 3.0
     """
 
     __TOKEN_SHOWS_IN_REPR__ = True
@@ -153,7 +155,7 @@ class Token(BaseToken):
     access_token: :class:`str`
         The token itself. This should **not** be prefixed with ``oauth:``!
     refresh_token: :class:`str` | ``None``
-        The reresh token associated with the access token. This is not useful unless you have passed ``client_secret`` to your :class:`~twitchio.Client`/:class:`~twitchio.ext.commands.Bot`
+        The refresh token associated with the access token. This is not useful unless you have provided a Client Secret from :meth:`TokenHandler.get_client_credentials <BaseTokenHandler.get_client_credentials>`.
 
     """
 
@@ -169,6 +171,16 @@ class Token(BaseToken):
             f"<{self.__class__.__name__} user={self._user} access_token={self.access_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} "
             f"refresh_token={self.refresh_token if BaseToken.__TOKEN_SHOWS_IN_REPR__ else '...'} scopes={self._scopes}>"
         )
+    
+    def copy(self) -> Self:
+        cls = self.__class__ # handle subclasses
+
+        new = cls(self.access_token, self.refresh_token)
+        new._user = self._user
+        new._scopes = self._scopes.copy()
+        new._last_validation = self._last_validation
+
+        return new
 
     async def refresh(self, handler: BaseTokenHandler, session: aiohttp.ClientSession) -> str:
         """|coro|
@@ -191,7 +203,7 @@ class Token(BaseToken):
         :error:`~twitchio.RefreshFailure`
             The token could not be refreshed.
         """
-        client_id, client_secret = await handler.get_client_credentials()
+        client_id, client_secret = await maybe_coro(handler.get_client_credentials)
 
         if not client_id or not client_secret:
             raise RefreshFailure("Cannot refresh user tokens without a client ID and client secret present")
@@ -213,8 +225,12 @@ class Token(BaseToken):
             if data["status"] == 401:
                 raise RefreshFailure(data["message"])
 
+            old_token = self.copy()
+
             self.access_token = data["access_token"]
             self.refresh_token = data["refresh_token"]
+
+            asyncio.create_task(handler._client_call_handler("token_refreshed", old_token, self))
 
             return self.access_token
 
@@ -420,6 +436,8 @@ class BaseTokenHandler:
     async def _client_get_client_token(self) -> BaseToken:
         try:
             t = await maybe_coro(self.get_client_token)
+        except NotImplementedError:
+            t = None
         except Exception as e:
             # TODO fire error handlers
             raise
@@ -453,16 +471,46 @@ class BaseTokenHandler:
             )
 
         return resp, token._user  # type: ignore
+    
+    async def _client_call_expiry_handler(self, old: Token) -> Token | None:
+        try:
+            new = await self.event_token_expired(old)
+        except Exception as e:
+            logger.debug("An error was raised in user code while calling the expiry hook. Fallback to returning None")
+            self.client.dispatch_listeners("error", e)
+            return None
+        
+        if new is None:
+            return
+        
+        if old._user is None: # unsure how this would be possible, but we can't evict from the cache without knowing the user
+            logger.warning("Bad state in expiry handler (user not known): unable to evict old token.")
+            return new
+        
+        self.__cache[old._user].remove(old)
+        self.__cache[old._user].add(new)
+
+        return new
+
+    async def _client_call_handler(self, event: str, *data: Any) -> None:
+        try:
+            await maybe_coro(getattr(self, f"event_{event}"), *data)
+        except Exception as e:
+            self.client.dispatch_listeners("error", e)
 
     async def get_client_token(self) -> BaseToken:
         """|maybecoro|
         Method to be overriden in a subclass.
+
         This should return a client token (generated with client id and client secret). If not implemented,
         the library will attempt to generate one with the credentials returned from :meth:`~.get_client_credentials`.
 
         .. warning::
 
             If the library is unable to fetch any client token, it will hard crash.
+            If you do not have means to generate a client token, you may not be able to use certain methods.
+            You will also need to ensure any :class:`~twitchio.Client` methods have a ``target`` parameter specified,
+            as client tokens are used when no target user is specified.
 
         Returns
         --------
@@ -474,6 +522,7 @@ class BaseTokenHandler:
     async def get_client_credentials(self) -> tuple[str, str | None]:
         """|maybecoro|
         Method to be overriden in a subclass.
+
         This should return a :class:`tuple` of (client id, client secret).
         The client secret is not required, however the client id is required to make requests to the twitch API.
         The client secret is required to automatically refresh user tokens when they expire, however it is not required to access the twitch API.
@@ -483,6 +532,7 @@ class BaseTokenHandler:
     async def get_irc_token(self, shard_id: int) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
+
         This should return a :class:`Token` containing an OAuth token with the ``chat:login`` scope.
 
         Parameters
@@ -500,6 +550,7 @@ class BaseTokenHandler:
     async def get_user_token(self, user: BaseUser | PartialUser, scopes: tuple[str]) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
+
         This function receives a user and a list of scopes that the request needs any one of to make the request.
         It should return a :class:`Token` object.
 
@@ -509,7 +560,7 @@ class BaseTokenHandler:
 
         Parameters
         -----------
-        user: Union[:class:`~twitchio.BaseUser`, :class:`~twitchio.BaseUser`]
+        user: :class:`~twitchio.BaseUser` | :class:`~twitchio.BaseUser`
             The user that a token is expected for.
         scopes: tuple[:class:`str`]
             A list of scopes that the endpoint needs one of. Any one or more of the scopes must be present on the returned token to successfully make the request
@@ -520,6 +571,47 @@ class BaseTokenHandler:
             The token for the associated user.
         """
         raise NotImplementedError
+
+    async def event_token_expired(self, token: Token) -> Token | None:
+        """|coro|
+        Method to be overriden in a subclass.
+        
+        This function is a **special** event hook into the HTTP system. It is called when a token expires **and cannot be refreshed automatically**.
+        From here, you may return a new token for the HTTP system to use instead. Alternatively, you may return ``None`` to signal the HTTP system to call :meth:`~.get_user_token` instead.
+
+        .. note::
+            This typically means that user interaction is required to acquire a new token.
+            An exception to this is if you have not provided a client_secret in :meth:`.get_client_credentials`, then the library will not attempt to refresh tokens.
+        
+        Parameters
+        -----------
+        token: :class:`Token`
+            The token that expired and could not be refreshed.
+        
+        Returns
+        --------
+            :class:`Token` | ``None``
+        """
+        return None
+    
+    async def event_token_refreshed(self, old: Token, new: Token) -> None:
+        """|maybecoro|
+        Method to be overriden in a subclass.
+
+        This function is called whenever the library refreshes a user token.
+        You do not *need* to do anything from this event, however this can be used to perform actions with the token.
+        For example, this can be used to update tokens in a database, or inform a user.
+
+        When this is called, the token has already been refeshed
+
+        Parameters
+        -----------
+        old: :class:`Token`
+            The token before it was refreshed.
+        new: :class:`Token`
+            The token after it was refreshed.
+        """
+        pass
 
 
 class SimpleTokenHandler(BaseTokenHandler):
