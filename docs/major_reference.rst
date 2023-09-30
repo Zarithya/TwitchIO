@@ -11,8 +11,14 @@ This page contains all of the most common classes and models you'll see when dev
     :members:
     :inherited-members:
 
-.. attributetable:: BaseTokenHandler
+.. attributetable:: Client
 
 .. autoclass:: Client
+    :members:
+    :inherited-members:
+
+.. attributetable:: BaseTokenHandler
+
+.. autoclass:: BaseTokenHandler
     :members:
     :inherited-members:
