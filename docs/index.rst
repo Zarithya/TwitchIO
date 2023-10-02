@@ -85,6 +85,7 @@
 
    major_reference
    minor_reference
+   events
 
 .. rst-class:: index-display-none
 .. toctree::
