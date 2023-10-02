@@ -321,7 +321,7 @@ class Client:
                     shard_index=index,
                     heartbeat=self._heartbeat,
                     join_timeout=self._join_timeout,
-                    initial_channels=chunk,  # type: ignore
+                    initial_channels=chunk,
                     cache_size=self._cache_size,
                     **self._kwargs,
                 ),

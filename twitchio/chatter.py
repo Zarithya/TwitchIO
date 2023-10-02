@@ -20,21 +20,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from typing import cast
+from __future__ import annotations
+
+from typing import cast, TYPE_CHECKING
 
 from .parser import IRCPayload
+
+if TYPE_CHECKING:
+    from .channel import Channel
 
 __all__ = ("PartialChatter",)
 
 
 class PartialChatter:
-    __slots__ = ("_name", "_colour", "_display_name", "_mod", "_turbo", "_id", "tags", "badges")
+    __slots__ = ("_name", "_colour", "_display_name", "_mod", "_turbo", "_id", "tags", "badges", "channel")
 
     def __init__(
         self,
         payload: IRCPayload,
+        channel: Channel | None
     ):
         self._name = payload.user
+        self.channel = channel
 
         tags = payload.tags
         badges = payload.badges

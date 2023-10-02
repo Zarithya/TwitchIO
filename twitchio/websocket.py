@@ -24,14 +24,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, Iterable
 
 import aiohttp
 
-from twitchio.tokens import BaseTokenHandler
-
+from .tokens import BaseTokenHandler
 from .backoff import ExponentialBackoff
-from .cache import Cache
 from .channel import Channel
 from .chatter import PartialChatter
 from .exceptions import *
@@ -55,11 +53,9 @@ class Websocket:
         token_handler: BaseTokenHandler,
         client: Client,
         limiter: IRCRateLimiter,
-        shard_index: int = 1,
+        shard_index: int,
         heartbeat: float | None = 30.0,
-        join_timeout: float | None = 10.0,
-        initial_channels: list | None = None,
-        cache_size: int | None = None,
+        initial_channels: Iterable[str] | None = None,
         **_,
     ):
         self.client = client
@@ -67,23 +63,18 @@ class Websocket:
         self.ws: aiohttp.ClientWebSocketResponse | None = None
         self.heartbeat = heartbeat
 
-        self.join_limiter = limiter
-        self.join_cache = {}
-        self.join_timeout = join_timeout
+        self.join_limiter: IRCRateLimiter = limiter
 
-        self.token_handler = token_handler
-        self.shard_index = shard_index
+        self.token_handler: BaseTokenHandler = token_handler
+        self.shard_index: int = shard_index
         self.nick: str | None = None
-        self.initial_channels = initial_channels
+        self._channels: set[str] = set(initial_channels or ()) # we keep a list of channels in case we need to reconnect
 
         self._backoff = ExponentialBackoff()
 
         self.closing = False
         self._ready_event = asyncio.Event()
-        self._keep_alive_task: asyncio.Task = None  # type: ignore
-
-        self._channel_cache = Cache(size=cache_size)
-        self._message_cache = Cache(size=cache_size)
+        self._keep_alive_task: asyncio.Task | None = None
 
     def is_connected(self) -> bool:
         return self.ws is not None and not self.ws.closed
@@ -116,14 +107,11 @@ class Websocket:
 
         await self.authentication_sequence(token)
 
-        while self.join_cache:
-            await asyncio.sleep(0.1)
-
-        await self.dispatch(event="shard_ready", number=self.shard_index)
+        self.client.dispatch_listeners("shard_ready", self.shard_index)
         self.client._shards[self.shard_index]._ready = True
 
         if all(s.ready for s in self.client._shards.values()):
-            await self.dispatch(event="ready")
+            self.client.dispatch_listeners("ready", None)
 
         await asyncio.wait_for(self._keep_alive_task, timeout=None)
 
@@ -139,12 +127,10 @@ class Websocket:
             data = message.data
 
             payloads = IRCPayload.parse(data=data)
-            await self.dispatch("raw_data", data)
+            self.client.dispatch_listeners("raw_data", data)
 
             for payload in payloads:
                 payload: IRCPayload
-
-                await self.dispatch("raw_payload", payload)
 
                 if payload.code == 200:
                     event = self.get_event(cast(str, payload.action))
@@ -164,27 +150,22 @@ class Websocket:
         await self.send("CAP REQ :twitch.tv/tags")
         await self.send("CAP REQ :twitch.tv/commands")
 
-        if self.initial_channels:
-            await self.join_channels(self.initial_channels)
+        if self._channels:
+            await self._join_channels(self._channels)
 
-    async def join_timeout_task(self, channel: str) -> None:
-        if self.join_timeout:
-            await asyncio.sleep(self.join_timeout)
-
-        del self.join_cache[channel]
-        raise JoinFailed(f"The channel <{channel}> was not able be to be joined. Check the name and try again.")
-
-    async def join_channels(self, channels: list) -> None:
+    async def _join_channels(self, channels: Iterable[str]) -> None:
         await self._ready_event.wait()
 
-        channels = [c.removeprefix("#").lower() for c in channels]
-
         for channel in channels:
-            self.join_cache[channel] = asyncio.create_task(self.join_timeout_task(channel), name=channel)
-
             await self.send(f"JOIN #{channel.lower()}")
             if cd := self.join_limiter.check_limit():
                 await self.join_limiter.wait_for()
+
+    async def join_channels(self, channels: list[str]) -> None:
+        channels = [c.removeprefix("#").lower() for c in channels]
+        self._channels.update(channels)
+
+        await self._join_channels(channels)
 
     async def send(self, message: str) -> None:
         assert self.ws, "There is no websocket"
@@ -195,45 +176,13 @@ class Websocket:
         except Exception as e:
             print(e)
 
-    def dispatch_callback(self, task: asyncio.Task) -> None:
-        if exc := task.exception():
-            asyncio.create_task(self.dispatch("error", exc))
-
-    async def dispatch(self, event: str, *args, **kwargs) -> None:
-        if not event:
-            return None
-
-        event = event.lower()
-        coro = getattr(self.client, f"event_{event}")
-
-        if not coro:
-            raise EventNotFound(f"The event <{event}> was not found.")
-        if not asyncio.iscoroutinefunction(coro):
-            raise TypeError("Events must be coroutines.")
-
-        task = asyncio.create_task(coro(*args, **kwargs))
-        task.add_done_callback(self.dispatch_callback)
-
-    def get_event(self, action: str):
+    def get_event(self, action: str | None):
         if not action:
             return None
 
         action = action.lower()
 
         return getattr(self, f"{action}_event")
-
-    def remove_join_cache(self, channel: str) -> None:
-        try:
-            task = self.join_cache[channel]
-        except KeyError:
-            return
-
-        try:
-            task.cancel()
-        except Exception as e:
-            logger.debug(f"An error occurred cancelling a join task. {e}")
-
-        del self.join_cache[channel]
 
     async def privmsg_event(self, payload: IRCPayload) -> None:
         logger.debug(
@@ -242,50 +191,31 @@ class Websocket:
             f"chatter={payload.user}, "
             f"content={payload.message}"
         )
-        channel = self._channel_cache.get(payload.channel, default=None)
 
-        if channel is None:
-            channel = Channel(name=payload.channel, websocket=self)
-            self._channel_cache[channel.name] = channel
+        channel = Channel(name=payload.channel, websocket=self)
+        chatter = PartialChatter(payload=payload, channel=channel)
+        message = Message(payload=payload, channel=channel, chatter=chatter)
 
-        chatter = PartialChatter(payload=payload)
-        message = Message(payload=payload, channel=channel, echo=False, chatter=chatter)
-
-        self._message_cache[message.id] = message
-        channel._chatters[chatter.name] = chatter
-
-        await self.dispatch("message", message)
+        self.client.dispatch_listeners("message", message)
 
     async def reconnect_event(self, payload: IRCPayload) -> None:
         asyncio.create_task(self._connect())
 
     async def ping_event(self, payload: IRCPayload) -> None:
-        logger.info("Received PING from Twitch, sending reply PONG.")
+        logger.debug("Received PING from Twitch, sending reply PONG.")
         await self.send("PONG :tmi.twitch.tv")
 
     async def join_event(self, payload: IRCPayload) -> None:
         channel = Channel(name=payload.channel, websocket=self)
+        chatter = PartialChatter(payload=payload, channel=channel)  # TODO...
 
-        if payload.channel in self.join_cache:
-            self.remove_join_cache(channel.name)
-            self._channel_cache[channel.name] = channel
-
-        chatter = PartialChatter(payload=payload)  # TODO...
-
-        if payload.user == self.nick:
-            self._channel_cache[channel.name] = channel
-
-        await self.dispatch("join", channel, chatter)
+        self.client.dispatch_listeners("join", chatter)
 
     async def part_event(self, payload: IRCPayload) -> None:
-        if payload.user == self.nick:
-            channel: Channel | None = self._channel_cache.pop(payload.channel)
-        else:
-            channel = Channel(name=payload.channel, websocket=self)
+        channel = Channel(name=payload.channel, websocket=self)
+        chatter = PartialChatter(payload=payload, channel=channel)  # TODO
 
-        chatter = PartialChatter(payload=payload)  # TODO
-
-        await self.dispatch("part", channel, chatter)
+        self.client.dispatch_listeners("part", chatter)
 
     async def cap_event(self, payload: IRCPayload) -> None:
         pass
@@ -299,12 +229,10 @@ class Websocket:
     async def whisper_event(self, payload: IRCPayload) -> None:
         logger.debug(f"Received WHISPER from Twitch: sender={payload.user} content={payload.message}")
 
-        chatter = PartialChatter(payload=payload)
+        chatter = PartialChatter(payload=payload, channel=None)
         message = Message(payload=payload, channel=None, echo=False, chatter=chatter)
 
-        self._message_cache[message.id] = message
-
-        await self.dispatch("message", message)
+        self.client.dispatch_listeners("message", message)
 
     async def close(self):
         self.closing = True
@@ -313,12 +241,8 @@ class Websocket:
             await self.ws.close()
 
         try:
-            self._keep_alive_task.cancel()
+            if self._keep_alive_task:
+                self._keep_alive_task.cancel()
         except Exception:
             pass
 
-        for task in self.join_cache.values():
-            try:
-                task.cancel()
-            except Exception:
-                pass

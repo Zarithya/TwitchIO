@@ -280,3 +280,15 @@ Edits
 
 - :meth:`Client.fetch_global_chat_badges`
     - Added the ``target`` parameter.
+
+
+Event Changes
+--------------
+Due to changes in the dispatching mechanism, all events now take one argument. 
+This affects all events that used to take two arguments, and also affects :meth:`Client/Bot.wait_for <twitchio.Client.wait_for>`.
+
+The following events have changed:
+
+- :meth:`event_join <twitchio.event_join>` - removed the ``channel`` argument, use :meth:`Chatter.channel` instead.
+- :meth:`event_part <twitchio.event_part>` - removed the ``channel`` argument, use :meth:`Chatter.channel` instead.
+- :meth:`event_ready <twitchio.event_ready>` - Added a dummy argument, this can be ignored and set to ``_`` .

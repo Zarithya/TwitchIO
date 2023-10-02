@@ -23,22 +23,19 @@ SOFTWARE.
 import copy
 
 from .abc import Messageable
-from .cache import Cache
-from .chatter import PartialChatter
 
 __all__ = ("Channel",)
 
 
 class Channel(Messageable):
-    __slots__ = ("_name", "_id", "_websocket", "_chatters")
+    __slots__ = ("_name", "_id", "_websocket")
 
     def __init__(self, **attrs):
         super().__init__(**attrs)
         self._id: int | None = attrs.get("id")
-        self._chatters: Cache = Cache()
 
     def __repr__(self) -> str:
-        return f"Channel: name={self._name}, shard_index={self._websocket.shard_index}"
+        return f"<Channel: name={self._name}, shard_index={self._websocket.shard_index}>"
 
     async def send(self, content: str) -> None:
         """|coro|
@@ -69,46 +66,6 @@ class Channel(Messageable):
 
         Returns
         --------
-        Optional[:class:`int`]
+        :class:`int` | ``None``
         """
         return self._id and int(self._id)
-
-    @property
-    def owner(self) -> PartialChatter | None:
-        """
-        The channel owner.
-
-        Returns
-        --------
-        Optional[:class:`~twitchio.PartialChatter`]
-        """
-        return self._chatters.get(self._name, default=None)
-
-    @property
-    def chatters(self) -> dict[str, PartialChatter]:
-        """
-        A mapping of the channel's chatter cache.
-
-        Returns
-        --------
-        Dict[:class:`str`, :class:`~twitchio.PartialChatter`]
-        """
-        return copy.copy(self._chatters.nodes)
-
-    def get_chatter(self, name: str) -> PartialChatter | None:
-        """Method which returns a chatter from the channel's cache.
-
-        Could be ``None`` if the chatter is not in cache.
-
-        Parameters
-        -----------
-        name: :class:`str`
-            The name of the chatter to find
-
-        Returns
-        --------
-        Optional[:class:`~twitchio.PartialChatter`]
-        """
-        name = name.lstrip("#").lower()
-
-        return self._chatters.get(name, default=None)
