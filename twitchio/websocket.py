@@ -36,6 +36,7 @@ from .exceptions import *
 from .limiter import IRCRateLimiter
 from .message import Message
 from .parser import IRCPayload
+from .models import PartialUser
 
 if TYPE_CHECKING:
     from .client import Client
@@ -48,12 +49,30 @@ HOST = "wss://irc-ws.chat.twitch.tv:443"
 
 
 class Websocket:
+
+    __slots__ = (
+        "client",
+        "ws",
+        "join_limiter",
+        "heartbeat",
+        "token_handler",
+        "shard_id",
+        "nick",
+        "closing",
+        "_shard_ready",
+        "_keep_alive_task",
+        "_channels",
+        "_backoff",
+        "_shard_target"
+    )
+
     def __init__(
         self,
         token_handler: BaseTokenHandler,
         client: Client,
         limiter: IRCRateLimiter,
-        shard_index: int,
+        shard_id: str,
+        shard_target: str | PartialUser | None,
         heartbeat: float | None = 30.0,
         initial_channels: Iterable[str] | None = None,
         **_,
@@ -66,40 +85,57 @@ class Websocket:
         self.join_limiter: IRCRateLimiter = limiter
 
         self.token_handler: BaseTokenHandler = token_handler
-        self.shard_index: int = shard_index
+        self.shard_id: str = shard_id
         self.nick: str | None = None
         self._channels: set[str] = set(initial_channels or ()) # we keep a list of channels in case we need to reconnect
 
         self._backoff = ExponentialBackoff()
 
-        self.closing = False
-        self._ready_event = asyncio.Event()
+        self.closing = asyncio.Event()
+        self._shard_ready = asyncio.Event()
         self._keep_alive_task: asyncio.Task | None = None
+        self._shard_target: str | None = shard_target.name if isinstance(shard_target, PartialUser) else shard_target
 
+    @property
     def is_connected(self) -> bool:
         return self.ws is not None and not self.ws.closed
 
-    async def _connect(self) -> None:
-        if self.closing:
-            return
+    async def start_connection(self) -> None:
+        while not self.closing.is_set():
+            try:
+                status = await self._connect()
+            except Exception as e:
+                self.client.dispatch_listeners("error", e)
+                if not self._backoff.is_empty:
+                    logger.error(f"Refusing to reconnect shard {self.shard_id} after error when connecting.")
+                    return
+            else:
+                self._shard_ready.clear()
+                if self._keep_alive_task:
+                    self._keep_alive_task.cancel()
+                
+                if status:
+                    self.client.dispatch_listeners("shard_disconnect", self.shard_id)
+                
+                continue
 
-        self._ready_event.clear()
-
-        if self.ws and self.is_connected():
-            await self.ws.close()
-
-        token, user = await self.token_handler._client_get_irc_login(self.client, self.shard_index)
-        self.nick = user.name
+    async def _connect(self) -> bool: # bool indicates whether the close was after establishing connection or not
+        if self._shard_target is not None:
+            token, user = await self.token_handler._client_get_irc_login(self.client, self._shard_target)
+            self.nick = user.name
+        
+        else:
+            self.nick = token = None
 
         async with aiohttp.ClientSession() as session:
             try:
                 self.ws = await session.ws_connect(url=HOST, heartbeat=self.heartbeat)
             except Exception as e:
                 retry = self._backoff.delay()
-                logger.error(f"Websocket could not connect. {e}. Attempting reconnect in {retry} seconds.")
+                logger.warning(f"Websocket shard {self.shard_id} could not connect. Attempting reconnect in {retry} seconds.", exc_info=e)
 
                 await asyncio.sleep(retry)
-                return await self._connect()
+                return False
 
             session.detach()
 
@@ -107,13 +143,8 @@ class Websocket:
 
         await self.authentication_sequence(token)
 
-        self.client.dispatch_listeners("shard_ready", self.shard_index)
-        self.client._shards[self.shard_index]._ready = True
-
-        if all(s.ready for s in self.client._shards.values()):
-            self.client.dispatch_listeners("ready", None)
-
-        await asyncio.wait_for(self._keep_alive_task, timeout=None)
+        await asyncio.wait_for(self._keep_alive_task, None)
+        return True
 
     async def _keep_alive(self) -> None:
         while True:
@@ -126,8 +157,10 @@ class Websocket:
 
             data = message.data
 
-            payloads = IRCPayload.parse(data=data)
+            logger.debug(f"IN  < {data.rstrip()}")
             self.client.dispatch_listeners("raw_data", data)
+
+            payloads = IRCPayload.parse(data=data)
 
             for payload in payloads:
                 payload: IRCPayload
@@ -137,14 +170,17 @@ class Websocket:
                     asyncio.create_task(event(payload)) if event else None
 
                 elif payload.code == 1:
-                    self._ready_event.set()
-                    logger.info(f"Successful authentication on Twitch Websocket with nick: {self.nick}.")
+                    self._shard_ready.set()
+                    self.client.dispatch_listeners("shard_ready", self.shard_id)
+                    logger.info(f"Shard {self.shard_id} has successful authenticated")
 
-        return await self._connect()
 
-    async def authentication_sequence(self, token: str) -> None:
-        await self.send(f"PASS oauth:{token}")
-        await self.send(f"NICK {self.nick}")
+    async def authentication_sequence(self, token: str | None) -> None:
+        if token:
+            await self.send(f"PASS oauth:{token}")
+            await self.send(f"NICK #{self.nick}")
+        else:
+            await self.send(f"NICK justinfan0000")
 
         await self.send("CAP REQ :twitch.tv/membership")
         await self.send("CAP REQ :twitch.tv/tags")
@@ -154,14 +190,15 @@ class Websocket:
             await self._join_channels(self._channels)
 
     async def _join_channels(self, channels: Iterable[str]) -> None:
-        await self._ready_event.wait()
+        await self._shard_ready.wait()
 
         for channel in channels:
-            await self.send(f"JOIN #{channel.lower()}")
             if cd := self.join_limiter.check_limit():
                 await self.join_limiter.wait_for()
+            
+            await self.send(f"JOIN #{channel.lower()}")
 
-    async def join_channels(self, channels: list[str]) -> None:
+    async def join_channels(self, channels: Iterable[str]) -> None:
         channels = [c.removeprefix("#").lower() for c in channels]
         self._channels.update(channels)
 
@@ -171,10 +208,13 @@ class Websocket:
         assert self.ws, "There is no websocket"
         message = message.strip("\r\n")
 
+        logger.debug(f"OUT > {message}")
+        
         try:
             await self.ws.send_str(f"{message}\r\n")
         except Exception as e:
-            print(e)
+            logger.exception(f"error sending message: {message}")
+            raise
 
     def get_event(self, action: str | None):
         if not action:
@@ -235,7 +275,7 @@ class Websocket:
         self.client.dispatch_listeners("message", message)
 
     async def close(self):
-        self.closing = True
+        self.closing.set()
 
         if self.ws:
             await self.ws.close()

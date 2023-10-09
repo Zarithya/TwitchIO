@@ -29,7 +29,7 @@ import sys
 import traceback
 import uuid
 from collections.abc import Callable, Coroutine
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, overload, Type
 from . import events
 from twitchio.http import HTTPAwaitableAsyncIterator, HTTPHandler
 
@@ -40,7 +40,7 @@ from .limiter import IRCRateLimiter
 from .message import Message
 from .models import *
 from .parser import IRCPayload
-from .shards import ShardInfo
+from .shards import DefaultShardManager, BaseShardManager
 from .tokens import BaseTokenHandler
 from .websocket import Websocket
 
@@ -104,7 +104,7 @@ class Client:
         verified: bool | None = False,
         join_timeout: float | None = 15.0,
         initial_channels: _initial_channels_T = None,
-        shard_limit: int = 100,
+        shard_manager: Type[BaseShardManager] = DefaultShardManager,
         cache_size: int | None = None,
         **kwargs,
     ):
@@ -115,8 +115,8 @@ class Client:
 
         self._cache_size = cache_size
 
-        self._shards = {}
-        self._shard_limit = shard_limit
+        self.__shard_manager_t: Type[BaseShardManager] = shard_manager
+        self._shard_manager: BaseShardManager
         self._initial_channels: _initial_channels_T = initial_channels or []
 
         self._limiter = IRCRateLimiter(status="verified" if verified else "user", bucket="joins")
@@ -132,7 +132,12 @@ class Client:
 
     async def __aenter__(self):
         await self.setup()
+        self._shard_manager = await self.__shard_manager_t._prepare(self._token_handler, self)
+        del self.__shard_manager_t
+        
+        self.loop = asyncio.get_event_loop()
         self._has_acquired = True
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -293,40 +298,6 @@ class Client:
         except Exception as e:
             self.dispatch_listeners("error", events.EventErrorData(callback.event, e))
 
-    async def _shard(self):
-        if inspect.iscoroutinefunction(self._initial_channels):
-            channels = await self._initial_channels()
-
-        elif callable(self._initial_channels):
-            channels = self._initial_channels()
-
-        elif isinstance(self._initial_channels, (list, tuple)):
-            channels = self._initial_channels
-        else:
-            raise TypeError("initial_channels must be a list, tuple, callable or coroutine returning a list or tuple.")
-
-        if not isinstance(channels, (list, tuple)):
-            raise TypeError("initial_channels must return a list or tuple of str.")
-
-        chunked = [channels[x : x + self._shard_limit] for x in range(0, len(channels), self._shard_limit)]
-
-        for index, chunk in enumerate(chunked, 1):
-            self._shards[index] = ShardInfo(
-                number=index,
-                channels=channels,
-                websocket=Websocket(
-                    token_handler=self._token_handler,
-                    client=self,
-                    limiter=self._limiter,
-                    shard_index=index,
-                    heartbeat=self._heartbeat,
-                    join_timeout=self._join_timeout,
-                    initial_channels=chunk,
-                    cache_size=self._cache_size,
-                    **self._kwargs,
-                ),
-            )
-
     def run(self) -> None:
         """
         A blocking call that starts and connects the bot to IRC.
@@ -367,25 +338,15 @@ class Client:
                 "You must first enter an async context by calling `async with client:`"
             )  # TODO need better error
 
-        await self.setup()
-        await self._shard()
+        await self._shard_manager._assign_initial_channels()
 
-        shard_tasks = [asyncio.create_task(shard._websocket._connect()) for shard in self._shards.values()]
-
-        await asyncio.wait(shard_tasks)
+        await self._shard_manager.start()
 
     async def close(self) -> None:
-        for shard in self._shards.values():
-            await shard._websocket.close()
-
+        await self._shard_manager.stop()
         await self._http.cleanup()
 
         self._is_closed = True
-
-    @property
-    def shards(self) -> dict[int, ShardInfo]:
-        """A dict of shard number to :class:`~twitchio.ShardInfo`"""
-        return self._shards
 
     @property
     def nick(self) -> str | None:

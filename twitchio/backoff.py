@@ -93,3 +93,16 @@ class ExponentialBackoff(Generic[T]):
 
         self._exp = min(self._exp + 1, self._max)
         return self._randfunc(0, self._base * 2**self._exp)
+    
+    @property
+    def is_empty(self) -> bool:
+        """
+        A boolean indicating if the backoff has been triggered.
+        """
+        invocation = time.monotonic()
+        interval = invocation - self._last_invocation
+        if interval > self._reset_time:
+            self._exp = 0
+        
+        return self._exp == 0
+

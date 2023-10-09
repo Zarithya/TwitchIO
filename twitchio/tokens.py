@@ -454,9 +454,9 @@ class BaseTokenHandler:
 
         return token
 
-    async def _client_get_irc_login(self, client: Client, shard_id: int) -> tuple[str, PartialUser]:
+    async def _client_get_irc_login(self, client: Client, name: str) -> tuple[str, PartialUser]:
         try:
-            token = await maybe_coro(self.get_irc_token, shard_id)
+            token = await maybe_coro(self.get_irc_token, name)
         except Exception as e:
             raise  # TODO fire error handlers
 
@@ -529,7 +529,7 @@ class BaseTokenHandler:
         """
         raise NotImplementedError
 
-    async def get_irc_token(self, shard_id: int) -> Token:
+    async def get_irc_token(self, user_name: str | None) -> Token:
         """|maybecoro|
         Method to be overriden in a subclass.
 
@@ -537,8 +537,10 @@ class BaseTokenHandler:
 
         Parameters
         -----------
-        shard_id: :class:`int`
-            The shard that is attempting to connect.
+        user_name: :class:`str` | ``None``
+            The name of the user to return a chat token for.
+            Typically, this will be ``None`` when using the default :ref:`shard manager <shard_manager>`.
+            For a more in-depth explanation, see the :ref:`shard manager documentation <shard_manager>`.
 
         Returns
         -------

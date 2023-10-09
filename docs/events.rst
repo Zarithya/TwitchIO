@@ -27,23 +27,6 @@ All of your listeners will run with the provided argument.
 Core library events
 --------------------
 
-.. function:: event_ready(_)
-
-    This event is called when all shards have connected to twitch, and all of them have received the READY event.
-
-    .. versionchanged:: 3.0
-        This now takes a dummy argument to comply with the new event dispatcher.
-        While it may get used in the future, for now you can ignore it.
-
-    .. warning::
-        This function can be called many times, as it is called every time a shard reconnects.
-        Do not use it for logic at startup. Instead, use :meth:`Client.setup`.
-    
-    Parameters
-    -----------
-    nothing: ``None``
-        Literally nothing.
-
 .. function:: event_shard_ready(shard_name: str)
     
     This event is called whenever a shard receives the READY event from twitch.
@@ -105,6 +88,15 @@ Core library events
     chatter: :class:`PartialChatter`
         The chatter that left.
 
+
+.. function:: event_raw_data(data: str)
+
+    This event is a **debug** event, and should not be used for anything other than debugging.
+
+    Parameters
+    -----------
+    data: :class:`str`
+        The raw payload received from twitch.
 
 Eventsub events
 -----------------

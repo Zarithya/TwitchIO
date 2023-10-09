@@ -37,12 +37,6 @@ This generally includes models that are returned by API requests.
     :members:
     :inherited-members:
 
-.. attributetable:: BaseTokenHandler
-
-.. autoclass:: BaseTokenHandler
-    :members:
-    :inherited-members:
-
 .. attributetable:: BaseUser
 
 .. autoclass:: BaseUser

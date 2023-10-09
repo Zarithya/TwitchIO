@@ -89,6 +89,7 @@ __all__ = (
     "ContentClassificationLabel",
     "ChannelFollowerEvent",
     "ChannelFollowingEvent",
+    "FollowEvent"
 )
 
 
@@ -128,7 +129,7 @@ class PartialUser(BaseUser):
     id: :class:`int`
         The id of the user.
     name: :class:`str` | ``None``
-        The name of the user (this corresponds to the ``login`` field of the API)
+        The name of the user (this corresponds to the ``login`` field of the API).
     """
 
     __slots__ = "id", "name", "_http", "_cached_rewards"
@@ -150,7 +151,7 @@ class PartialUser(BaseUser):
 
         Returns
         --------
-        :class:`~twitchio.Channel` | ``None``
+            :class:`~twitchio.Channel` | ``None``
         """
         if not self.name:
             return None
@@ -158,19 +159,26 @@ class PartialUser(BaseUser):
         if client:
             return client.get_channel(self.name)
 
-    async def fetch(self) -> User:
+    async def fetch(self, use_client_token: bool = False) -> User:
         """|coro|
 
         Fetches the full user from the api.
 
+        Parameters
+        -----------
+        use_client_token: :class:`bool`
+            Whether to use the client token or to fetch this user using their own token.
+            If you do not have access to this user's token, you should set this to ``True``.
+            Defaults to ``False``.
+
         Returns
         --------
-        :class:`User` The full user associated with this :class:`PartialUser`
+            :class:`User` The full user associated with this :class:`PartialUser`
         """
         if not self._http.client:
             raise RuntimeError("No client attached to underlying HTTP session")
 
-        return await self._http.client.fetch_user(id=self.id, target=self)
+        return await self._http.client.fetch_user(id=self.id, target=self if not use_client_token else None) # type: ignore
 
     async def edit(self, description: str) -> None:
         """|coro|

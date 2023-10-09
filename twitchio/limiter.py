@@ -49,7 +49,7 @@ class IRCRateLimiter:
         "user": {"messages": 20, "joins": 20},
     }
 
-    def __init__(self, *, status: str, bucket: str):
+    def __init__(self, *, status: Literal["user", "moderator", "verified"], bucket: str):
         self.bucket = self.buckets[status]
         self.tokens = self.bucket[bucket]
 
