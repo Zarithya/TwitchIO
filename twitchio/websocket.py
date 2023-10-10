@@ -141,6 +141,8 @@ class Websocket:
 
         self._keep_alive_task = asyncio.create_task(self._keep_alive())
 
+        self.client.dispatch_listeners("shard_connect", self.shard_id)
+        
         await self.authentication_sequence(token)
 
         await asyncio.wait_for(self._keep_alive_task, None)

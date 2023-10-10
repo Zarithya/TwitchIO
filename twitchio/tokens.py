@@ -465,11 +465,11 @@ class BaseTokenHandler:
 
         resp = await token.get(client._http, self, client._http._session)  # type: ignore
 
-        if not token.has_scope("chat:login") and not token.has_scope("chat:read"):
+        if not token.has_scope("chat:read"):
             raise InvalidToken(
                 f"The token given for user {token._user} does not have the chat:login or chat:read scope."
             )
-
+        
         return resp, token._user  # type: ignore
     
     async def _client_call_expiry_handler(self, old: Token) -> Token | None:
