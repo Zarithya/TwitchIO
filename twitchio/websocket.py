@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, cast, Iterable
 
 import aiohttp
 
-from .tokens import BaseTokenHandler
+from .tokens import BaseTokenHandler, BaseToken
 from .backoff import ExponentialBackoff
 from .channel import Channel
 from .chatter import PartialChatter
@@ -159,7 +159,7 @@ class Websocket:
 
             data = message.data
 
-            logger.debug(f"IN  < {data.rstrip()}")
+            logger.debug(f"{self.shard_id:<10} IN < {data.rstrip()}")
             self.client.dispatch_listeners("raw_data", data)
 
             payloads = IRCPayload.parse(data=data)
@@ -179,7 +179,7 @@ class Websocket:
 
     async def authentication_sequence(self, token: str | None) -> None:
         if token:
-            await self.send(f"PASS oauth:{token}")
+            await self.send(f"PASS oauth:{token}", sensitive_text=token)
             await self.send(f"NICK #{self.nick}")
         else:
             await self.send(f"NICK justinfan0000")
@@ -206,17 +206,20 @@ class Websocket:
 
         await self._join_channels(channels)
 
-    async def send(self, message: str) -> None:
+    async def send(self, message: str, *, sensitive_text: str | None = None) -> None:
         assert self.ws, "There is no websocket"
         message = message.strip("\r\n")
-
-        logger.debug(f"OUT > {message}")
         
         try:
             await self.ws.send_str(f"{message}\r\n")
         except Exception as e:
             logger.exception(f"error sending message: {message}")
             raise
+        finally:
+            if sensitive_text and not BaseToken.__TOKEN_SHOWS_IN_REPR__:
+                message = message.replace(sensitive_text, "...")
+
+            logger.debug(f"{self.shard_id:<10} OUT > {message}")
 
     def get_event(self, action: str | None):
         if not action:
