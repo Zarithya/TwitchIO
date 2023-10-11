@@ -46,6 +46,7 @@
          <ul class="index-featuring-list">
             <li><a href="major_reference.html" class="reference internal">Major Reference</a>
             <li><a href="minor_reference.html" class="reference internal">Dataclass Reference</a>
+            <li><a href="events.html" class="reference internal">Event Reference</a>
          </ul>
       </div>
 
@@ -86,6 +87,7 @@
    major_reference
    minor_reference
    events
+   lowlevel
 
 .. rst-class:: index-display-none
 .. toctree::
