@@ -79,7 +79,7 @@ exclude = [
 ]
 reportMissingImports = "none"
 reportUnnecessaryTypeIgnoreComment = "warning"
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
 
 [tool.poetry.extras]
