@@ -14,6 +14,8 @@ If you are using these APIs, it is expected that you are proficient in Python, a
 Shard Managers
 ---------------
 
+This is just an API reference. For a detailed explanation, please see :ref:`sharding`.
+
 .. autoclass:: BaseShardManager
     :members:
 

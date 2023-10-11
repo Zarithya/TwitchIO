@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import sys
 import datetime
 import inspect
 from typing import Any, Awaitable, Callable, Coroutine, TypeVar
@@ -50,6 +51,7 @@ json_loader = _loads
 json_dumper = _dumps
 
 MISSING: Any = object()
+PY_311 = sys.version_info.minor > 3.10
 
 
 def parse_timestamp(timestamp: str) -> datetime.datetime:

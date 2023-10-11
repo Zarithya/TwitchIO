@@ -22,14 +22,16 @@ SOFTWARE.
 """
 from __future__ import annotations
 
+import abc
 import asyncio
 import logging
 import inspect
 import math
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Protocol
 
 from .limiter import IRCRateLimiter
 from .websocket import Websocket
+from .utils import PY_311
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -45,7 +47,7 @@ __all__ = (
 
 logger = logging.getLogger("twitchio.shards")
 
-class BaseShardManager:
+class BaseShardManager(metaclass=abc.ABCMeta):
     """
     This is an advanced subclassable object that can be passed to your :class:`~twitchio.Client` or :class:`~twitchio.ext.commands.Bot`.
 
@@ -83,8 +85,14 @@ class BaseShardManager:
 
     @classmethod
     async def _prepare(cls, tokens: BaseTokenHandler, client: Client) -> Self:
-        self = cls.__new__(cls)
-
+        try:
+            self = cls.__new__(cls)
+        except TypeError as e:
+            if PY_311:
+                e.add_note("Tip: You'll need to fill out all abstract methods.")
+            
+            raise
+        
         self.shards = dict()
         self.token_handler = tokens
         self.client = client
@@ -200,6 +208,7 @@ class BaseShardManager:
         """
         pass
     
+    @abc.abstractmethod
     async def assign_shard(self, channel_name: str, is_initial_channel: bool) -> None:
         """|coro|
         
@@ -222,6 +231,7 @@ class BaseShardManager:
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     async def start(self) -> None:
         """|coro|
 
@@ -233,6 +243,7 @@ class BaseShardManager:
         """
         raise NotImplementedError
     
+    @abc.abstractmethod
     async def stop(self) -> None:
         """|coro|
         
@@ -242,6 +253,7 @@ class BaseShardManager:
         """
         raise NotImplementedError
     
+    @abc.abstractmethod
     async def get_sender_shard(self, channel_name: str) -> Shard:
         """|coro|
         
@@ -414,8 +426,14 @@ class DistributedShardManager(BaseShardManager):
             if slice_size > self.channels_per_shard: # we need to add more shards to startup
                 initial_shards = math.ceil(len(assignable) / self.channels_per_shard)
                 if initial_shards > self.max_shard_count:
-                    raise RuntimeError("More channels have been added to initial_channels than are allowed by the combination "
+                    e = RuntimeError("More channels have been added to initial_channels than are allowed by the combination "
                                        "of channels_per_shard and max_shard_count. Consider using larger amounts for these values.")
+                    
+                    if PY_311:
+                        e.add_note(f"TIP: Try passing a larger `max_shard_count` argument to your Client/Bot. Current is {self.max_shard_count}.")
+                        e.add_note(f"TIP: Try passing a larger `channels_per_shard` argument to your Client/Bot. Current is {self.channels_per_shard}.")
+
+                    raise e
 
                 slice_size = math.floor(len(assignable) / initial_shards)
 
@@ -428,7 +446,7 @@ class DistributedShardManager(BaseShardManager):
                 
                 self.add_shard(f"initial-shard-{idx}", self.authorized_name, initial_channels=chnl_slice)
         else:
-            for idx in range(initial_shards):
+            for idx in range(1, initial_shards+1):
                 self.add_shard(f"initial-shard-{idx}", self.authorized_name)
 
     async def assign_shard(self, channel_name: str, is_initial_channel: bool) -> None:
@@ -448,6 +466,9 @@ class DistributedShardManager(BaseShardManager):
             ideal_shard = min(self.shards.values(), key=lambda shard: len(shard.websocket._channels))
             
             if len(ideal_shard.websocket._channels) >= self.channels_per_shard:
+                if len(self.shards) >= self.max_shard_count:
+                    raise RuntimeError("All shards are full, and the shard count limit has been reached.")
+                
                 new_shard_id = f"extended-shard-{self.next_shard_id}"
                 self.next_shard_id += 1
 
@@ -462,6 +483,13 @@ class DistributedShardManager(BaseShardManager):
         ideal_shard = min(self.shards.values(), key=lambda shard: len(shard.websocket._channels))
 
         if len(ideal_shard.websocket._channels) >= self.channels_per_shard:
+            if len(self.shards) >= self.max_shard_count:
+                e = RuntimeError("All shards are full, and the shard count limit has been reached.")
+                if PY_311:
+                    e.add_note(f"TIP: Try passing a larger `max_shard_count` argument to your Client/Bot. Current is {self.max_shard_count}.")
+                
+                raise e
+
             new_shard_id = f"extended-shard-{self.next_shard_id}"
             self.next_shard_id += 1
 
@@ -497,7 +525,6 @@ class DistributedShardManager(BaseShardManager):
             await self.stop_all_shards()
         """
         await self.stop_all_shards()
-    
         
     async def get_sender_shard(self, channel_name: str) -> Shard:
         """|coro|
