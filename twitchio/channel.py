@@ -20,22 +20,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import copy
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from .abc import Messageable
+
+if TYPE_CHECKING:
+    from .websocket import Websocket
+    from .shards import BaseShardManager
 
 __all__ = ("Channel",)
 
 
 class Channel(Messageable):
-    __slots__ = ("_name", "_id", "_websocket")
+    __slots__ = ("_name", "_id", "_shard_manager", "_target_ws")
 
-    def __init__(self, **attrs):
-        super().__init__(**attrs)
-        self._id: int | None = attrs.get("id")
+    def __init__(self, id: int | None, name: str, shard_manager: BaseShardManager):
+        super().__init__(name=name, shard_manager=shard_manager)
+        self._id: int | None = id
+        self._target_ws: Websocket | None = None
 
     def __repr__(self) -> str:
-        return f"<Channel: name={self._name}, shard_index={self._websocket.shard_index}>"
+        return f"<Channel: name={self._name}>"
 
     async def send(self, content: str) -> None:
         """|coro|
@@ -46,7 +52,10 @@ class Channel(Messageable):
         content: :class:`str`
             The content to send to the user
         """
-        await self._websocket.send(f"PRIVMSG #{self._name} :{content}")
+        if not self._target_ws:
+            self._target_ws = (await self._shard_manager.get_sender_shard(self._name)).websocket
+        
+        await self._target_ws.send(f"PRIVMSG #{self._name} :{content}")
 
     @property
     def name(self) -> str:

@@ -28,13 +28,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .message import Message
     from .websocket import Websocket
+    from .shards import BaseShardManager
 
 
 class Messageable(metaclass=abc.ABCMeta):
-    def __init__(self, **attrs):
-        self._name: str = attrs["name"]
+    def __init__(self, name: str, shard_manager: BaseShardManager):
+        self._name: str = name
 
-        self._websocket: Websocket = attrs["websocket"]
+        self._shard_manager: BaseShardManager = shard_manager
 
     @property
     @abc.abstractmethod

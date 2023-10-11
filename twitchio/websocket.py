@@ -39,6 +39,7 @@ from .parser import IRCPayload
 from .models import PartialUser
 
 if TYPE_CHECKING:
+    from .shards import BaseShardManager
     from .client import Client
     from .limiter import IRCRateLimiter
 
@@ -56,6 +57,7 @@ class Websocket:
         "join_limiter",
         "heartbeat",
         "token_handler",
+        "shard_manager",
         "shard_id",
         "nick",
         "closing",
@@ -72,6 +74,7 @@ class Websocket:
         client: Client,
         limiter: IRCRateLimiter,
         shard_id: str,
+        shard_manager: BaseShardManager,
         shard_target: str | PartialUser | None,
         heartbeat: float | None = 30.0,
         initial_channels: Iterable[str] | None = None,
@@ -85,6 +88,7 @@ class Websocket:
         self.join_limiter: IRCRateLimiter = limiter
 
         self.token_handler: BaseTokenHandler = token_handler
+        self.shard_manager: BaseShardManager = shard_manager
         self.shard_id: str = shard_id
         self.nick: str | None = None
         self._channels: set[str] = set(initial_channels or ()) # we keep a list of channels in case we need to reconnect
@@ -209,7 +213,7 @@ class Websocket:
     async def send(self, message: str, *, sensitive_text: str | None = None) -> None:
         assert self.ws, "There is no websocket"
         message = message.strip("\r\n")
-        
+
         try:
             await self.ws.send_str(f"{message}\r\n")
         except Exception as e:
@@ -236,8 +240,9 @@ class Websocket:
             f"chatter={payload.user}, "
             f"content={payload.message}"
         )
-
-        channel = Channel(name=payload.channel, websocket=self)
+        name: str = payload.channel # type: ignore
+        
+        channel = Channel(id=None, name=name, shard_manager=self.shard_manager)
         chatter = PartialChatter(payload=payload, channel=channel)
         message = Message(payload=payload, channel=channel, chatter=chatter)
 
@@ -251,14 +256,17 @@ class Websocket:
         await self.send("PONG :tmi.twitch.tv")
 
     async def join_event(self, payload: IRCPayload) -> None:
-        channel = Channel(name=payload.channel, websocket=self)
+        name: str = payload.channel # type: ignore
+        channel = Channel(id=None, name=name, shard_manager=self.shard_manager)
         chatter = PartialChatter(payload=payload, channel=channel)  # TODO...
 
         self.client.dispatch_listeners("join", chatter)
 
     async def part_event(self, payload: IRCPayload) -> None:
-        channel = Channel(name=payload.channel, websocket=self)
-        chatter = PartialChatter(payload=payload, channel=channel)  # TODO
+        name: str = payload.channel # type: ignore
+      
+        channel = Channel(id=None, name=name, shard_manager=self.shard_manager)
+        chatter = PartialChatter(payload=payload, channel=channel)
 
         self.client.dispatch_listeners("part", chatter)
 
@@ -272,10 +280,8 @@ class Websocket:
         pass
 
     async def whisper_event(self, payload: IRCPayload) -> None:
-        logger.debug(f"Received WHISPER from Twitch: sender={payload.user} content={payload.message}")
-
         chatter = PartialChatter(payload=payload, channel=None)
-        message = Message(payload=payload, channel=None, echo=False, chatter=chatter)
+        message = Message(payload=payload, channel=None, chatter=chatter)
 
         self.client.dispatch_listeners("message", message)
 

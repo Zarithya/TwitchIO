@@ -141,6 +141,7 @@ class BaseShardManager:
             self.client,
             IRCRateLimiter(status="user", bucket="joins"),
             shard_id,
+            self,
             authorized_user,
             initial_channels=initial_channels
         )
@@ -239,6 +240,24 @@ class BaseShardManager:
         This method is called when :meth:`Client/Bot.stop <twitchio.Client.stop>` is called.
         """
         raise NotImplementedError
+    
+    async def get_sender_shard(self, channel_name: str) -> Shard:
+        """|coro|
+        
+        Method to be overriden in a subclass.
+
+        This method is called whenever the library needs to know what shard to use to send a message with.
+        Unless you have different users logged in on different shards, you can typically return any shard.
+
+        .. note::
+            You do not need to have joined a channel's chat to send messages to it.
+
+        Parameters
+        -----------
+        channel_name: :class:`str`
+            The channel to send a message to.
+        """
+        raise NotImplementedError
 
 
 class DefaultShardManager(BaseShardManager):
@@ -321,6 +340,18 @@ class DefaultShardManager(BaseShardManager):
             await self.main_shard.stop()
         """
         await self.main_shard.stop()
+    
+    async def get_sender_shard(self, channel_name: str) -> Shard:
+        """|coro|
+        
+        Returns the only shard available. Nothing interesting.
+
+        Parameters
+        -----------
+        channel_name: :class:`str`
+            The channel to send a message to.
+        """
+        return self.main_shard
 
 
 class DistributedShardManager(BaseShardManager):
@@ -465,6 +496,20 @@ class DistributedShardManager(BaseShardManager):
             await self.stop_all_shards()
         """
         await self.stop_all_shards()
+    
+        
+    async def get_sender_shard(self, channel_name: str) -> Shard:
+        """|coro|
+        
+        Fetches the first shard available to send from.
+
+        The implementation looks like this:
+
+        .. code-block:: python
+
+            return next(iter(self.shards.values()))
+        """
+        return next(iter(self.shards.values()))
 
 
 class Shard:

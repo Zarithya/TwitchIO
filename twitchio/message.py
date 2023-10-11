@@ -40,16 +40,13 @@ class Message:
         The channel the message was sent from. Could be None if the Message is a whisper.
     author: :class:`PartialChatter`
         The chatter that sent the message.
-    echo: bool
-        Bool indicating whether the message is a message sent from the bot or not. True indicates the message
-        was sent from the bot.
     raw: str
         The raw message string received via Twitch.
     """
 
     __slots__ = ("_tags", "_id", "_tid", "content", "channel", "author", "_badges", "echo", "raw", "timestamp")
 
-    def __init__(self, payload: IRCPayload, *, channel: Channel | None, chatter: PartialChatter, echo: bool = False):
+    def __init__(self, payload: IRCPayload, *, channel: Channel | None, chatter: PartialChatter):
         self._tags = payload.tags
         self._badges: dict = payload.badges
 
@@ -59,7 +56,6 @@ class Message:
         self.channel: Channel | None = channel
         self.author: PartialChatter = chatter
 
-        self.echo: bool = echo
         self.raw: str = payload.raw
 
         self.timestamp = ...
@@ -70,7 +66,6 @@ class Message:
             f"id={self.id}, "
             f"author=<{self.author}>, "
             f"channel=<{self.channel}>, "
-            f"echo={self.echo}, "
             f"timestamp={self.timestamp}"
         )
 
