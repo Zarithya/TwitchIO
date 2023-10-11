@@ -165,7 +165,8 @@ class BaseShardManager:
         A helper method to stop all shards.
         """
         for shard in self.shards.values():
-            await shard.stop()
+            if shard.websocket.is_connected:
+                await shard.stop()
     
     async def wait_until_exit(self) -> None:
         """|coro|
