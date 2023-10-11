@@ -292,3 +292,13 @@ The following events have changed:
 - :meth:`event_join <twitchio.event_join>` - removed the ``channel`` argument, use :meth:`Chatter.channel` instead.
 - :meth:`event_part <twitchio.event_part>` - removed the ``channel`` argument, use :meth:`Chatter.channel` instead.
 - :meth:`event_ready <twitchio.event_ready>` - Added a dummy argument, this can be ignored and set to ``_`` .
+
+The following event has been removed:
+
+- ``event_ready`` - this event has been removed in favour of :func:`event_shard_ready` and :meth:`Client.setup <twitchio.Client.setup>`.
+
+The following events have been added:
+
+- :meth:`event_shard_ready <twitchio.event_shard_ready>`
+- :meth:`event_shard_connect <twitchio.event_shard_connect>`
+
