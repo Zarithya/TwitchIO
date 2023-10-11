@@ -35,4 +35,5 @@ from .models import *
 from .rewards import *
 from .tokens import *
 from .events import *
+from .shards import *
 from .http import HTTPAwaitableAsyncIterator, HTTPAwaitableAsyncIteratorWithSource

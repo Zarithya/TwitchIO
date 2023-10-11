@@ -256,6 +256,9 @@ This generally includes models that are returned by API requests.
 .. autoclass:: SearchUser
     :members:
 
+.. attributetable:: Shard
+    :members:
+
 .. attributetable:: SimpleTokenHandler
 
 .. autoclass:: SimpleTokenHandler

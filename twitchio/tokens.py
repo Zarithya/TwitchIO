@@ -539,8 +539,8 @@ class BaseTokenHandler:
         -----------
         user_name: :class:`str` | ``None``
             The name of the user to return a chat token for.
-            Typically, this will be ``None`` when using the default :ref:`shard manager <shard_manager>`.
-            For a more in-depth explanation, see the :ref:`shard manager documentation <shard_manager>`.
+            Typically, this will be ``None`` when using the default :ref:`shard manager <sharding>`.
+            For a more in-depth explanation, see the :ref:`shard manager documentation <sharding>`.
 
         Returns
         -------

@@ -10,10 +10,10 @@ This page is a reference guide, and contains up-to-date information on all event
 
 How do I make an event listener
 ++++++++++++++++++++++++++++++++
-events can be created using the :meth:`@client.listen <Client.listen>` decorator, to which you can provide an event name, or you can name your function using the event name.
-You can check the :meth:`examples <Client.listen>` for more information.
+events can be created using the :meth:`@client.listener <Client.listener>` decorator, to which you can provide an event name, or you can name your function using the event name.
+You can check the :meth:`examples <Client.listener>` for more information.
 
-Alternatively, if using the :ref:`commands ext <commands_ref>`, you can use :meth:`@commands.listen <twitchio.ext.commands.listen>` decorator inside a :class:`~twitchio.ext.commands.Cog` to create an event listener.
+Alternatively, if using the :ref:`commands ext <commands_ref>`, you can use :meth:`@commands.listener <twitchio.ext.commands.listener>` decorator inside a :class:`~twitchio.ext.commands.Cog` to create an event listener.
 
 Can I make my own events?
 ++++++++++++++++++++++++++
@@ -29,15 +29,25 @@ Core library events
 
 .. function:: event_shard_ready(shard_name: str)
     
-    This event is called whenever a shard receives the READY event from twitch.
+    This event is called whenever a shard receives confirmation of authorization from twitch.
 
     .. versionadded:: 3.0
 
     Parameters
     -----------
     shard_name: :class:`str`
-        The name of the shard that has received the READY event.
-        Typically this will be the name of the user this shard is logged in as.
+        The name of the shard that is ready to receive data.
+
+.. function:: event_shard_connect(shard_name: str)
+    
+    This event is called whenever a shard makes a connection to twitch.
+
+    .. versionadded:: 3.0
+
+    Parameters
+    -----------
+    shard_name: :class:`str`
+        The name of the shard that has connected.
 
 .. function:: event_message(message: Message)
 
