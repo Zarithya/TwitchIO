@@ -77,10 +77,10 @@ setup(
     version=VERSION,
     packages=[
         "twitchio",
+        "twitchio.eventsub",
         "twitchio.ext.commands",
         #"twitchio.ext.pubsub", uncomment this once the pubsub ext is made
         "twitchio.ext.routines",
-        "twitchio.ext.eventsub",
         "twitchio.ext.sounds",
     ],
     license="MIT",

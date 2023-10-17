@@ -1,26 +1,26 @@
-.. currentmodule:: twitchio.ext.eventsub
+.. currentmodule:: twitchio.eventsub
 
 .. _eventsub_ref:
 
-Eventsub ext
-=============
+Eventsub
+=========
 
-This ext is split into multiple sections to make navigation easier.
+The eventsub documentation is split into multiple sections to make navigation easier.
 If you're looking for the API reference, :ref:`click here <eventsub_api_ref>`.
-If you're new to the ext, continue reading!
+If you're new to eventsub, continue reading!
 
 
 .. _eventsub_subclass_ref:
 
 A quick example
 -----------------
-This is an example of the ext in standalone mode:
+This is an example of eventsub in standalone mode:
 
 .. code:: python
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -47,7 +47,7 @@ Alternatively, it can be used alongside a Client from the core library:
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -84,7 +84,7 @@ and be on your way. Speaking of standalone eventsub clients, the new way to crea
 .. code:: python
 
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -99,7 +99,7 @@ The token handler is explained in much greater detail :ref:`here <tokens>`, but 
 .. code:: python
 
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -118,7 +118,7 @@ Setting up the websocket transport is as easy as creating an instance of it:
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -137,7 +137,7 @@ Now that we have everything we need to create our eventsub client, we can do so 
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -161,7 +161,7 @@ So, assuming that the token has the correct scopes (You can check which scopes y
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -177,7 +177,7 @@ So, assuming that the token has the correct scopes (You can check which scopes y
     asyncio.run(main())
 
 But wait, that code won't work. We need to tell the library who to subscribe to, and for that we need a :class:`~twitchio.PartialUser` object. 
-Unfortunately, to get a :class:`~twitchio.PartialUser`, we'd need a :class:`twitchio.Client`, which the ext works without. So instead, we can use a
+Unfortunately, to get a :class:`~twitchio.PartialUser`, we'd need a :class:`twitchio.Client`, which eventsub works without. So instead, we can use a
 :class:`~twitchio.DummyUser`, which is an object we can make ourselves, and isn't attached to a Client from the core library. 
 We'll need to know the ID of user beforehand, and you can get that by either calling :meth:`twitchio.Client.fetch_users` to convert the username to the ID,
 or you can use one of the many online tools to do so. For this example, I'll use a fake ID, however to successfully make a subscription you'll need to find your own.
@@ -186,7 +186,7 @@ or you can use one of the many online tools to do so. For this example, I'll use
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:
@@ -210,7 +210,7 @@ so the program runs to the end of the main function and then exits. We can fix t
 
     import asyncio
     import twitchio
-    from twitchio.ext import eventsub
+    from twitchio import eventsub
 
     class MyEventsubClient(eventsub.Client):
         async def event_channel_update(self, event: eventsub.NotificationEvent[eventsub.ChannelUpdate]) -> None:

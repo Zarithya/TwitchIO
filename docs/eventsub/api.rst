@@ -1,4 +1,4 @@
-.. currentmodule:: twitchio.ext.eventsub
+.. currentmodule:: twitchio.eventsub
 
 .. _eventsub_api_ref:
 

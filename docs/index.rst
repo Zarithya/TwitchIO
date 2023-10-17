@@ -46,6 +46,7 @@
          <ul class="index-featuring-list">
             <li><a href="major_reference.html" class="reference internal">Major Reference</a>
             <li><a href="minor_reference.html" class="reference internal">Dataclass Reference</a>
+            <li><a href="eventsub/index.html" class="reference internal">EventSub</a>
             <li><a href="events.html" class="reference internal">Event Reference</a>
          </ul>
       </div>
@@ -55,7 +56,6 @@
          <ul class="index-featuring-list">
             <li><a href="exts/commands.html" class="reference internal">Commands</a>
             <li><a href="exts/pubsub.html" class="reference internal">PubSub</a>
-            <li><a href="exts/eventsub/index.html" class="reference internal">EventSub</a>
             <li><a href="exts/routines.html" class="reference internal">Routines</a>
             <li><a href="exts/sounds.html" class="reference internal">Sounds</a>
          </ul>
@@ -87,6 +87,7 @@
    major_reference
    minor_reference
    events
+   eventsub/index
    lowlevel
 
 .. rst-class:: index-display-none
@@ -96,7 +97,6 @@
 
    exts/commands
    exts/pubsub
-   exts/eventsub/index
    exts/routines
    exts/sounds
 
