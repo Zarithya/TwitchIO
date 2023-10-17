@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, Protocol, Type
 
 from typing_extensions import Self
 
-from ...utils import json_loader, parse_timestamp as _parse_timestamp
+from twitchio.utils import json_loader, parse_timestamp as _parse_timestamp
 from .models import AllModels, _event_map
 
 if TYPE_CHECKING:
